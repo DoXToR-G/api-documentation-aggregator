@@ -1,6 +1,19 @@
 # API Documentation Aggregator
 
+> **🚀 An Open-Source Project by Kamil DoXToR-G.**
+
 A comprehensive web application that automatically fetches, maintains, and provides searchable documentation for APIs from various providers such as Atlassian (Jira), Datadog, Kubernetes, and more.
+
+**🌟 This is an open-source project - contributions are welcome!**
+
+## 👨‍💻 Author
+
+**Kamil DoXToR-G.** - Full-stack developer passionate about creating useful tools for the developer community.
+
+- 🎯 **Project Lead** - Architecture, backend development, and system design
+- 🔧 **Tech Stack** - FastAPI, PostgreSQL, Elasticsearch, Docker
+- 🌐 **Open Source** - Committed to building and sharing quality software
+- 📧 **Contact** - Open issues on GitHub for questions and contributions
 
 ## 🚀 Features
 
@@ -183,6 +196,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
+- **Kamil DoXToR-G.** - Project creator and lead developer
 - FastAPI community for the excellent web framework
 - Elasticsearch for powerful search capabilities
 - Tailwind CSS for the beautiful design system
