@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Latest API Buddy</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <!-- Simple Icons CDN for real brand icons -->
+    <script src="https://unpkg.com/simple-icons@v10/icons.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'selector',
+            theme: {
+                extend: {
+                    colors: {
+                        background: 'var(--background)',
+                        foreground: 'var(--foreground)',
+                        card: 'var(--card)',
+                        'card-foreground': 'var(--card-foreground)',
+                        popover: 'var(--popover)',
+                        'popover-foreground': 'var(--popover-foreground)',
+                        primary: 'var(--primary)',
+                        'primary-foreground': 'var(--primary-foreground)',
+                        secondary: 'var(--secondary)',
+                        'secondary-foreground': 'var(--secondary-foreground)',
+                        muted: 'var(--muted)',
+                        'muted-foreground': 'var(--muted-foreground)',
+                        accent: 'var(--accent)',
+                        'accent-foreground': 'var(--accent-foreground)',
+                        destructive: 'var(--destructive)',
+                        border: 'var(--border)',
+                        input: 'var(--input)',
+                        ring: 'var(--ring)',
+                        'chart-1': 'var(--chart-1)',
+                        'chart-2': 'var(--chart-2)',
+                        'chart-3': 'var(--chart-3)',
+                        'chart-4': 'var(--chart-4)',
+                        'chart-5': 'var(--chart-5)',
+                    },
+                    borderRadius: {
+                        lg: 'var(--radius)',
+                        md: 'calc(var(--radius) - 2px)',
+                        sm: 'calc(var(--radius) - 4px)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+          --radius: 0.65rem;
+          --background: oklch(1 0 0);
+          --foreground: oklch(0.141 0.005 285.823);
+          --card: oklch(1 0 0);
+          --card-foreground: oklch(0.141 0.005 285.823);
+          --popover: oklch(1 0 0);
+          --popover-foreground: oklch(0.141 0.005 285.823);
+          --primary: oklch(0.723 0.219 149.579);
+          --primary-foreground: oklch(0.982 0.018 155.826);
+          --secondary: oklch(0.967 0.001 286.375);
+          --secondary-foreground: oklch(0.21 0.006 285.885);
+          --muted: oklch(0.967 0.001 286.375);
+          --muted-foreground: oklch(0.552 0.016 285.938);
+          --accent: oklch(0.967 0.001 286.375);
+          --accent-foreground: oklch(0.21 0.006 285.885);
+          --destructive: oklch(0.577 0.245 27.325);
+          --border: oklch(0.92 0.004 286.32);
+          --input: oklch(0.92 0.004 286.32);
+          --ring: oklch(0.723 0.219 149.579);
+          --chart-1: oklch(0.646 0.222 41.116);
+          --chart-2: oklch(0.6 0.118 184.704);
+          --chart-3: oklch(0.398 0.07 227.392);
+          --chart-4: oklch(0.828 0.189 84.429);
+          --chart-5: oklch(0.769 0.188 70.08);
+          --sidebar: oklch(0.985 0 0);
+          --sidebar-foreground: oklch(0.141 0.005 285.823);
+          --sidebar-primary: oklch(0.723 0.219 149.579);
+          --sidebar-primary-foreground: oklch(0.982 0.018 155.826);
+          --sidebar-accent: oklch(0.967 0.001 286.375);
+          --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
+          --sidebar-border: oklch(0.92 0.004 286.32);
+          --sidebar-ring: oklch(0.723 0.219 149.579);
+        }
+
+        .dark {
+          --background: oklch(0.141 0.005 285.823);
+          --foreground: oklch(0.985 0 0);
+          --card: oklch(0.21 0.006 285.885);
+          --card-foreground: oklch(0.985 0 0);
+          --popover: oklch(0.21 0.006 285.885);
+          --popover-foreground: oklch(0.985 0 0);
+          --primary: oklch(0.696 0.17 162.48);
+          --primary-foreground: oklch(0.393 0.095 152.535);
+          --secondary: oklch(0.274 0.006 286.033);
+          --secondary-foreground: oklch(0.985 0 0);
+          --muted: oklch(0.274 0.006 286.033);
+          --muted-foreground: oklch(0.705 0.015 286.067);
+          --accent: oklch(0.274 0.006 286.033);
+          --accent-foreground: oklch(0.985 0 0);
+          --destructive: oklch(0.704 0.191 22.216);
+          --border: oklch(1 0 0 / 10%);
+          --input: oklch(1 0 0 / 15%);
+          --ring: oklch(0.527 0.154 150.069);
+          --chart-1: oklch(0.488 0.243 264.376);
+          --chart-2: oklch(0.696 0.17 162.48);
+          --chart-3: oklch(0.769 0.188 70.08);
+          --chart-4: oklch(0.627 0.265 303.9);
+          --chart-5: oklch(0.645 0.246 16.439);
+          --sidebar: oklch(0.21 0.006 285.885);
+          --sidebar-foreground: oklch(0.985 0 0);
+          --sidebar-primary: oklch(0.696 0.17 162.48);
+          --sidebar-primary-foreground: oklch(0.393 0.095 152.535);
+          --sidebar-accent: oklch(0.274 0.006 286.033);
+          --sidebar-accent-foreground: oklch(0.985 0 0);
+          --sidebar-border: oklch(1 0 0 / 10%);
+          --sidebar-ring: oklch(0.527 0.154 150.069);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background-color: var(--background);
+            color: var(--foreground);
+        }
+        
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, var(--primary), var(--chart-2));
+        }
+    </style>
+</head>
+<body class="bg-background text-foreground">
+    <!-- Dark Mode Toggle -->
+    <button 
+        id="darkModeToggle" 
+        class="fixed top-4 right-4 z-50 p-2 rounded-lg bg-secondary hover:bg-accent text-secondary-foreground border border-border transition-colors"
+        onclick="toggleDarkMode()"
+    >
+        <i data-lucide="moon" class="h-4 w-4 dark:hidden"></i>
+        <i data-lucide="sun" class="h-4 w-4 hidden dark:block"></i>
+    </button>
+    <!-- Header -->
+    <div class="gradient-bg text-primary-foreground">
+        <div class="container mx-auto px-4 py-16 text-center">
+            <h1 class="text-5xl font-bold mb-4">
+                Latest API
+                <span class="text-accent-foreground bg-accent px-2 py-1 rounded-lg">Buddy</span>
+            </h1>
+            <p class="text-xl text-primary-foreground/80 max-w-3xl mx-auto">
+                Your friendly companion for fetching, maintaining, and searching API documentation from multiple providers including 
+                Atlassian, Datadog, Kubernetes, and more.
+            </p>
+        </div>
+    </div>
+
+    <!-- Search Section (Temporarily Disabled) -->
+    <div class="max-w-4xl mx-auto mb-12 hidden">
+        <div class="text-center mb-8">
+            <h2 class="text-3xl font-bold text-foreground mb-4">🔍 Intelligent API Search</h2>
+            <p class="text-muted-foreground">Search across all API documentation with natural language queries</p>
+        </div>
+        
+        <!-- Search Interface -->
+        <div class="bg-card rounded-lg border border-border p-6 mb-6">
+            <div class="flex space-x-4 mb-4">
+                <div class="flex-1">
+                    <input 
+                        type="text" 
+                        id="searchInput" 
+                        placeholder="Search APIs... (e.g., 'create issue', 'kubernetes pods', 'datadog metrics')"
+                        class="w-full px-4 py-3 text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                        onkeypress="handleSearchKeyPress(event)"
+                    />
+                </div>
+                <button 
+                    onclick="performSearch()" 
+                    class="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium flex items-center space-x-2"
+                >
+                    <i data-lucide="search" class="h-4 w-4"></i>
+                    <span>Search</span>
+                </button>
+            </div>
+            
+            <!-- Search Filters -->
+            <div class="flex flex-wrap gap-3 mb-4">
+                <select id="providerFilter" class="px-3 py-2 text-sm bg-background border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-primary">
+                    <option value="">All Providers</option>
+                    <option value="datadog">Datadog</option>
+                    <option value="jira_cloud">Jira Cloud</option>
+                    <option value="kubernetes">Kubernetes</option>
+                    <option value="prometheus">Prometheus</option>
+                    <option value="grafana">Grafana</option>
+                    <option value="kibana">Kibana</option>
+                </select>
+                
+                <select id="methodFilter" class="px-3 py-2 text-sm bg-background border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-primary">
+                    <option value="">All Methods</option>
+                    <option value="GET">GET</option>
+                    <option value="POST">POST</option>
+                    <option value="PUT">PUT</option>
+                    <option value="DELETE">DELETE</option>
+                    <option value="PATCH">PATCH</option>
+                </select>
+                
+                <button onclick="clearFilters()" class="px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                    Clear Filters
+                </button>
+            </div>
+            
+            <!-- Search Status -->
+            <div id="searchStatus" class="hidden text-sm text-muted-foreground mb-4">
+                <div class="flex items-center space-x-2">
+                    <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                    <span>Searching...</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Search Results -->
+        <div id="searchResults" class="hidden">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-foreground">Search Results</h3>
+                <span id="resultsCount" class="text-sm text-muted-foreground"></span>
+            </div>
+            <div id="resultsContainer" class="space-y-4">
+                <!-- Results will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Jira Agent Section -->
+    <div class="max-w-4xl mx-auto mb-16">
+        <div class="text-center mb-8">
+            <h2 class="text-3xl font-bold text-foreground mb-4">🤖 Jira API Assistant</h2>
+            <p class="text-muted-foreground">Ask questions about Jira API operations and get instant code examples</p>
+        </div>
+        
+        <!-- Jira Agent Interface -->
+        <div class="bg-card rounded-lg border border-border p-6 mb-6">
+            <!-- API Categories -->
+            <div class="mb-6">
+                <h3 class="text-lg font-semibold text-foreground mb-3">API Categories</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <button onclick="askJiraAgent('Issues')" class="p-4 text-sm bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg transition-colors border border-blue-200 dark:border-blue-800">
+                        <div class="text-2xl mb-2">🎫</div>
+                        <div class="font-medium">Issues</div>
+                        <div class="text-xs opacity-70">Create, update, search</div>
+                    </button>
+                    <button onclick="askJiraAgent('Comments')" class="p-4 text-sm bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg transition-colors border border-green-200 dark:border-green-800">
+                        <div class="text-2xl mb-2">💬</div>
+                        <div class="font-medium">Comments</div>
+                        <div class="text-xs opacity-70">Add, edit, manage</div>
+                    </button>
+                    <button onclick="askJiraAgent('Projects')" class="p-4 text-sm bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg transition-colors border border-purple-200 dark:border-purple-800">
+                        <div class="text-2xl mb-2">📁</div>
+                        <div class="font-medium">Projects</div>
+                        <div class="text-xs opacity-70">Create, configure</div>
+                    </button>
+                    <button onclick="askJiraAgent('Dashboards')" class="p-4 text-sm bg-orange-50 dark:bg-orange-900/20 hover:bg-orange-100 dark:hover:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-lg transition-colors border border-orange-200 dark:border-orange-800">
+                        <div class="text-2xl mb-2">📊</div>
+                        <div class="font-medium">Dashboards</div>
+                        <div class="text-xs opacity-70">View, create, share</div>
+                    </button>
+                    <button onclick="askJiraAgent('Users & Groups')" class="p-4 text-sm bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-lg transition-colors border border-indigo-200 dark:border-indigo-800">
+                        <div class="text-2xl mb-2">👥</div>
+                        <div class="font-medium">Users & Groups</div>
+                        <div class="text-xs opacity-70">Manage, assign</div>
+                    </button>
+                    <button onclick="askJiraAgent('Workflows')" class="p-4 text-sm bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg transition-colors border border-red-200 dark:border-red-800">
+                        <div class="text-2xl mb-2">🔄</div>
+                        <div class="font-medium">Workflows</div>
+                        <div class="text-xs opacity-70">Transitions, statuses</div>
+                    </button>
+                    <button onclick="askJiraAgent('Search & JQL')" class="p-4 text-sm bg-teal-50 dark:bg-teal-900/20 hover:bg-teal-100 dark:hover:bg-teal-900/30 text-teal-700 dark:text-teal-300 rounded-lg transition-colors border border-teal-200 dark:border-teal-800">
+                        <div class="text-2xl mb-2">🔍</div>
+                        <div class="font-medium">Search & JQL</div>
+                        <div class="text-xs opacity-70">Query, filter</div>
+                    </button>
+                    <button onclick="askJiraAgent('Apps & Custom Fields')" class="p-4 text-sm bg-pink-50 dark:bg-pink-900/20 hover:bg-pink-100 dark:hover:bg-pink-900/30 text-pink-700 dark:text-pink-300 rounded-lg transition-colors border border-pink-200 dark:border-pink-800">
+                        <div class="text-2xl mb-2">🔧</div>
+                        <div class="font-medium">Apps & Fields</div>
+                        <div class="text-xs opacity-70">Custom, configure</div>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Chat Interface -->
+            <div class="flex space-x-4 mb-4">
+                <div class="flex-1">
+                    <input 
+                        type="text" 
+                        id="jiraInput" 
+                        placeholder="Ask about Jira API... (e.g., 'How to update an issue priority?')"
+                        class="w-full px-4 py-3 text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                        onkeypress="handleJiraKeyPress(event)"
+                    />
+                </div>
+                <button 
+                    onclick="askJiraAgent()" 
+                    id="jiraAskButton"
+                    class="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium flex items-center space-x-2"
+                >
+                    <i data-lucide="message-circle" class="h-4 w-4"></i>
+                    <span>Ask</span>
+                </button>
+            </div>
+            
+            <!-- Loading Status -->
+            <div id="jiraStatus" class="hidden text-sm text-muted-foreground mb-4">
+                <div class="flex items-center space-x-2">
+                    <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                    <span>Asking Jira Agent...</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Jira Agent Response -->
+        <div id="jiraResponse" class="hidden">
+            <div class="bg-card rounded-lg border border-border p-6">
+                <div class="flex items-center space-x-2 mb-4">
+                    <div class="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
+                        <i data-lucide="bot" class="h-4 w-4 text-blue-600 dark:text-blue-400"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-foreground">Jira Assistant Response</h3>
+                    <span id="jiraConfidence" class="text-xs px-2 py-1 rounded-full bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100"></span>
+                </div>
+                
+                <!-- Response Content -->
+                <div id="jiraResponseContent">
+                    <!-- Content will be populated dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- API Providers Section -->
+    <div class="max-w-6xl mx-auto">
+        <div class="text-center mb-8">
+            <h2 class="text-3xl font-bold text-foreground mb-4">Supported API Providers</h2>
+            <p class="text-muted-foreground">Explore the API providers we support and their documentation.</p>
+        </div>
+        <div id="providersContainer" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="animate-pulse">
+                <div class="h-4 bg-muted rounded w-3/4 mb-2"></div>
+                <div class="h-3 bg-muted rounded w-1/2"></div>
+            </div>
+            <div class="animate-pulse">
+                <div class="h-4 bg-muted rounded w-3/4 mb-2"></div>
+                <div class="h-3 bg-muted rounded w-1/2"></div>
+            </div>
+            <div class="animate-pulse">
+                <div class="h-4 bg-muted rounded w-3/4 mb-2"></div>
+                <div class="h-3 bg-muted rounded w-1/2"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-secondary text-secondary-foreground py-8 mt-12 border-t border-border">
+        <div class="container mx-auto px-4 text-center">
+            <p class="text-muted-foreground">
+                Latest API Buddy - Built with FastAPI, PostgreSQL, and modern web technologies
+            </p>
+            <div class="flex justify-center space-x-6 mt-4">
+                <a href="http://localhost:8000/docs" target="_blank" class="text-primary hover:text-primary/80 transition-colors">
+                    📖 API Documentation
+                </a>
+                <a href="http://localhost:8000/health" target="_blank" class="text-chart-4 hover:text-chart-4/80 transition-colors">
+                    ❤️ Health Check
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // API Base URL
+        const API_BASE = 'http://localhost:8000';
+
+        // Fetch API Status
+        async function fetchApiStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+                
+                document.getElementById('apiStatus').innerHTML = `
+                    <div class="flex items-center space-x-2">
+                        <div class="w-3 h-3 bg-chart-4 rounded-full"></div>
+                        <span class="font-semibold text-chart-4">Status: ${data.status}</span>
+                    </div>
+                    <div class="text-sm text-muted-foreground mt-2">
+                        Mode: ${data.mode} | Database: ${data.database}
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                        ${Object.entries(data.services).map(([service, status]) => `
+                            <div class="flex items-center justify-between p-2 bg-secondary rounded-md border border-border">
+                                <span class="text-sm font-medium text-secondary-foreground">${service}:</span>
+                                <span class="text-sm text-muted-foreground">${status}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('apiStatus').innerHTML = `
+                    <div class="flex items-center space-x-2">
+                        <div class="w-3 h-3 bg-destructive rounded-full"></div>
+                        <span class="font-semibold text-destructive">API Connection Failed</span>
+                    </div>
+                    <div class="text-sm text-muted-foreground mt-2">
+                        Make sure the backend is running on ${API_BASE}
+                    </div>
+                `;
+            }
+        }
+
+        // Get provider icon and color based on provider name (using local SVG files)
+        function getProviderIcon(providerName) {
+            const iconMap = {
+                'datadog': { 
+                    iconType: 'svg',
+                    iconSvg: `<img src="icons/datadog.svg" class="w-8 h-8" alt="Datadog">`,
+                    color: 'text-purple-600',
+                    bgColor: 'bg-purple-50', 
+                    borderColor: 'border-purple-200',
+                    description: 'Monitoring & Analytics'
+                },
+                'jira_cloud': { 
+                    iconType: 'svg',
+                    iconSvg: `<img src="icons/jira.svg" class="w-8 h-8" alt="Jira">`,
+                    color: 'text-blue-600',
+                    bgColor: 'bg-blue-50', 
+                    borderColor: 'border-blue-200',
+                    description: 'Issue Tracking'
+                },
+                'kubernetes': { 
+                    iconType: 'svg',
+                    iconSvg: `<img src="icons/kubernetes.svg" class="w-8 h-8" alt="Kubernetes">`,
+                    color: 'text-blue-500',
+                    bgColor: 'bg-blue-50', 
+                    borderColor: 'border-blue-200',
+                    description: 'Container Orchestration'
+                },
+                'prometheus': { 
+                    iconType: 'svg',
+                    iconSvg: `<img src="icons/prometheus.svg" class="w-8 h-8" alt="Prometheus">`,
+                    color: 'text-orange-600',
+                    bgColor: 'bg-orange-50', 
+                    borderColor: 'border-orange-200',
+                    description: 'Metrics Collection'
+                },
+                'grafana': { 
+                    iconType: 'svg',
+                    iconSvg: `<img src="icons/grafana.svg" class="w-8 h-8" alt="Grafana">`,
+                    color: 'text-orange-500',
+                    bgColor: 'bg-orange-50', 
+                    borderColor: 'border-orange-200',
+                    description: 'Data Visualization'
+                },
+                'kibana': { 
+                    iconType: 'svg',
+                    iconSvg: `<img src="icons/kibana.svg" class="w-8 h-8" alt="Kibana">`,
+                    color: 'text-teal-700',
+                    bgColor: 'bg-teal-50', 
+                    borderColor: 'border-teal-200',
+                    description: 'Log Analytics'
+                }
+            };
+            return iconMap[providerName] || { 
+                iconType: 'lucide',
+                icon: 'globe', 
+                color: 'text-primary', 
+                bgColor: 'bg-primary/10', 
+                borderColor: 'border-primary/30',
+                description: 'API Provider'
+            };
+        }
+
+        // Fetch API Providers
+        async function fetchProviders() {
+            try {
+                console.log('Fetching providers from:', `${API_BASE}/api/v1/providers/`);
+                const response = await fetch(`${API_BASE}/api/v1/providers/`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const providers = await response.json();
+                console.log('Fetched providers:', providers);
+                
+                if (providers.length === 0) {
+                    document.getElementById('providersContainer').innerHTML = `
+                        <div class="text-center py-8">
+                            <i data-lucide="file-text" class="h-12 w-12 text-muted-foreground mx-auto mb-4"></i>
+                            <p class="text-muted-foreground">No API providers configured yet.</p>
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('providersContainer').innerHTML = `
+                            ${providers.map(provider => {
+                                const iconInfo = getProviderIcon(provider.name);
+                                
+                                return `
+                                    <div class="bg-card rounded-lg border border-border p-6 hover:shadow-lg transition-shadow duration-200">
+                                        <div class="flex items-start space-x-4">
+                                            <div class="flex-shrink-0">
+                                                <div class="w-12 h-12 ${iconInfo.bgColor} rounded-lg flex items-center justify-center border ${iconInfo.borderColor}">
+                                                    ${iconInfo.iconType === 'svg' ? iconInfo.iconSvg : `<i data-lucide="${iconInfo.icon}" class="h-8 w-8 ${iconInfo.color}"></i>`}
+                                                </div>
+                                            </div>
+                                            <div class="flex-1 min-w-0">
+                                                <div class="flex items-center justify-between mb-2">
+                                                    <h3 class="text-lg font-semibold text-foreground">${provider.display_name}</h3>
+                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${provider.is_active ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100' : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100'}">
+                                                        ${provider.is_active ? 'Active' : 'Inactive'}
+                                                    </span>
+                                                </div>
+                                                <p class="text-muted-foreground text-sm mb-4">${provider.description}</p>
+                                                <div class="flex items-center justify-between">
+                                                    <span class="inline-flex items-center text-xs font-medium ${iconInfo.color} bg-secondary/50 px-2 py-1 rounded-md">
+                                                        <i data-lucide="tag" class="h-3 w-3 mr-1"></i>
+                                                        ${iconInfo.description}
+                                                    </span>
+                                                    <a href="${provider.documentation_url}" target="_blank" class="inline-flex items-center text-sm font-medium text-primary hover:text-primary/80 transition-colors">
+                                                        <i data-lucide="external-link" class="h-4 w-4 mr-1"></i>
+                                                        Docs
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                    `;
+                }
+                
+                // Re-initialize Lucide icons
+                lucide.createIcons();
+                
+            } catch (error) {
+                console.error('Error fetching providers:', error);
+                document.getElementById('providersContainer').innerHTML = `
+                    <div class="text-center py-8">
+                        <i data-lucide="alert-circle" class="h-12 w-12 text-destructive mx-auto mb-4"></i>
+                        <p class="text-destructive mb-2">Failed to load API providers</p>
+                        <p class="text-muted-foreground text-sm">Please check if the backend service is running</p>
+                        <button onclick="fetchProviders()" class="mt-4 inline-flex items-center px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary/90 transition-colors">
+                            <i data-lucide="refresh-cw" class="h-4 w-4 mr-2"></i>
+                            Retry
+                        </button>
+                    </div>
+                `;
+                lucide.createIcons();
+            }
+        }
+
+        // Search functionality
+        function handleSearchKeyPress(event) {
+            if (event.key === 'Enter') {
+                performSearch();
+            }
+        }
+
+        async function performSearch() {
+            const query = document.getElementById('searchInput').value.trim();
+            if (!query) return;
+
+            const provider = document.getElementById('providerFilter').value;
+            const method = document.getElementById('methodFilter').value;
+
+            // Show loading status
+            document.getElementById('searchStatus').classList.remove('hidden');
+            document.getElementById('searchResults').classList.add('hidden');
+
+            try {
+                // Build search parameters
+                const params = new URLSearchParams({
+                    q: query,
+                    limit: 20
+                });
+                
+                if (provider) params.append('provider', provider);
+                if (method) params.append('method', method);
+
+                console.log('Searching with params:', params.toString());
+                
+                // Note: This would normally call the search API
+                // For now, we'll simulate search results
+                setTimeout(() => {
+                    displayMockSearchResults(query, provider, method);
+                }, 1000);
+
+            } catch (error) {
+                console.error('Search failed:', error);
+                document.getElementById('searchStatus').classList.add('hidden');
+                displaySearchError(error.message);
+            }
+        }
+
+        function displayMockSearchResults(query, provider, method) {
+            // Hide loading status
+            document.getElementById('searchStatus').classList.add('hidden');
+            
+            // Show search results section
+            document.getElementById('searchResults').classList.remove('hidden');
+
+            // Mock search results for demonstration
+            const mockResults = [
+                {
+                    id: 1,
+                    title: 'Create Issue',
+                    description: 'Creates a new issue in Jira with the provided details',
+                    endpoint_path: '/rest/api/3/issue',
+                    http_method: 'POST',
+                    provider_name: 'jira_cloud',
+                    provider_display_name: 'Jira Cloud',
+                    tags: ['issues', 'create'],
+                    relevance_score: 0.95
+                },
+                {
+                    id: 2,
+                    title: 'List Kubernetes Pods',
+                    description: 'List all pods in a specific namespace',
+                    endpoint_path: '/api/v1/namespaces/{namespace}/pods',
+                    http_method: 'GET',
+                    provider_name: 'kubernetes',
+                    provider_display_name: 'Kubernetes',
+                    tags: ['pods', 'list', 'namespace'],
+                    relevance_score: 0.87
+                },
+                {
+                    id: 3,
+                    title: 'Submit Metrics',
+                    description: 'Submit custom metrics to Datadog for monitoring',
+                    endpoint_path: '/api/v1/series',
+                    http_method: 'POST',
+                    provider_name: 'datadog',
+                    provider_display_name: 'Datadog',
+                    tags: ['metrics', 'monitoring', 'timeseries'],
+                    relevance_score: 0.82
+                }
+            ];
+
+            // Filter results based on search criteria
+            let filteredResults = mockResults.filter(result => {
+                const matchesProvider = !provider || result.provider_name === provider;
+                const matchesMethod = !method || result.http_method === method;
+                const matchesQuery = result.title.toLowerCase().includes(query.toLowerCase()) ||
+                                   result.description.toLowerCase().includes(query.toLowerCase()) ||
+                                   result.tags.some(tag => tag.toLowerCase().includes(query.toLowerCase()));
+                
+                return matchesProvider && matchesMethod && matchesQuery;
+            });
+
+            // Update results count
+            document.getElementById('resultsCount').textContent = 
+                `${filteredResults.length} result${filteredResults.length !== 1 ? 's' : ''} found`;
+
+            // Display results
+            const container = document.getElementById('resultsContainer');
+            if (filteredResults.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8">
+                        <i data-lucide="search" class="h-12 w-12 text-muted-foreground mx-auto mb-4"></i>
+                        <h3 class="text-lg font-semibold text-foreground mb-2">No results found</h3>
+                        <p class="text-muted-foreground">Try adjusting your search terms or filters</p>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = filteredResults.map(result => {
+                    const providerIcon = getProviderIcon(result.provider_name);
+                    const methodColors = {
+                        'GET': 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100',
+                        'POST': 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100',
+                        'PUT': 'bg-orange-100 text-orange-800 dark:bg-orange-800 dark:text-orange-100',
+                        'DELETE': 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100',
+                        'PATCH': 'bg-purple-100 text-purple-800 dark:bg-purple-800 dark:text-purple-100'
+                    };
+
+                    return `
+                        <div class="bg-card rounded-lg border border-border p-6 hover:shadow-md transition-shadow">
+                            <div class="flex items-start space-x-4">
+                                <div class="flex-shrink-0">
+                                    <div class="w-10 h-10 ${providerIcon.bgColor} rounded-lg flex items-center justify-center border ${providerIcon.borderColor}">
+                                        ${providerIcon.iconType === 'svg' ? providerIcon.iconSvg.replace('w-8 h-8', 'w-6 h-6') : `<i data-lucide="${providerIcon.icon}" class="h-5 w-5 ${providerIcon.color}"></i>`}
+                                    </div>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center space-x-3 mb-2">
+                                        <h3 class="text-lg font-semibold text-foreground">${result.title}</h3>
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${methodColors[result.http_method] || 'bg-gray-100 text-gray-800'}">
+                                            ${result.http_method}
+                                        </span>
+                                        <span class="text-xs text-muted-foreground">${Math.round(result.relevance_score * 100)}% match</span>
+                                    </div>
+                                    <p class="text-muted-foreground text-sm mb-3">${result.description}</p>
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center space-x-4">
+                                            <code class="text-xs bg-secondary/50 px-2 py-1 rounded font-mono">${result.endpoint_path}</code>
+                                            <span class="text-xs text-muted-foreground">${result.provider_display_name}</span>
+                                        </div>
+                                        <div class="flex space-x-2">
+                                            ${result.tags.map(tag => `<span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-primary/10 text-primary">${tag}</span>`).join('')}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // Re-initialize Lucide icons
+            lucide.createIcons();
+        }
+
+        function displaySearchError(message) {
+            document.getElementById('searchResults').classList.remove('hidden');
+            document.getElementById('resultsCount').textContent = '';
+            document.getElementById('resultsContainer').innerHTML = `
+                <div class="text-center py-8">
+                    <i data-lucide="alert-circle" class="h-12 w-12 text-destructive mx-auto mb-4"></i>
+                    <h3 class="text-lg font-semibold text-foreground mb-2">Search Error</h3>
+                    <p class="text-muted-foreground mb-4">${message}</p>
+                    <button onclick="performSearch()" class="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary/90 transition-colors">
+                        <i data-lucide="refresh-cw" class="h-4 w-4 mr-2"></i>
+                        Try Again
+                    </button>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+
+        function clearFilters() {
+            document.getElementById('providerFilter').value = '';
+            document.getElementById('methodFilter').value = '';
+        }
+
+        // Dark mode functionality
+        function toggleDarkMode() {
+            document.documentElement.classList.toggle('dark');
+            localStorage.setItem('darkMode', document.documentElement.classList.contains('dark'));
+            lucide.createIcons(); // Recreate icons after theme change
+        }
+
+        // Load saved dark mode preference
+        function loadDarkModePreference() {
+            const savedDarkMode = localStorage.getItem('darkMode');
+            if (savedDarkMode === 'true' || (!savedDarkMode && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            }
+        }
+
+        // Jira Agent Functions
+        async function askJiraAgent(question = null) {
+            const input = document.getElementById('jiraInput');
+            const query = question || input.value.trim();
+            
+            if (!query) {
+                alert('Please enter a question about Jira API');
+                return;
+            }
+            
+            // Set the input value if question was provided via button
+            if (question) {
+                input.value = question;
+            }
+            
+            // Show loading state
+            document.getElementById('jiraStatus').classList.remove('hidden');
+            document.getElementById('jiraResponse').classList.add('hidden');
+            document.getElementById('jiraAskButton').disabled = true;
+            
+            try {
+                const response = await fetch(`/api/v1/jira/ask?q=${encodeURIComponent(query)}`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    displayJiraResponse(data);
+                } else {
+                    displayJiraError(data.detail || 'Failed to get response from Jira Agent');
+                }
+            } catch (error) {
+                console.error('Error calling Jira Agent:', error);
+                displayJiraError('Network error. Please check if the backend is running.');
+            } finally {
+                // Hide loading state
+                document.getElementById('jiraStatus').classList.add('hidden');
+                document.getElementById('jiraAskButton').disabled = false;
+            }
+        }
+        
+        function displayJiraResponse(data) {
+            // Show response container
+            document.getElementById('jiraResponse').classList.remove('hidden');
+            
+            // Update confidence badge
+            const confidenceElement = document.getElementById('jiraConfidence');
+            const confidenceText = data.confidence.charAt(0).toUpperCase() + data.confidence.slice(1);
+            confidenceElement.textContent = `${confidenceText} Confidence`;
+            confidenceElement.className = `text-xs px-2 py-1 rounded-full ${
+                data.confidence === 'high' ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100' :
+                data.confidence === 'medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100' :
+                'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100'
+            }`;
+            
+            // Build response content
+            const responseContent = `
+                <div class="space-y-6">
+                    <!-- Endpoint Info -->
+                    <div class="flex items-center space-x-4 p-4 bg-secondary/30 rounded-lg">
+                        <div class="flex-1">
+                            <div class="flex items-center space-x-3 mb-2">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getMethodColor(data.method)}">
+                                    ${data.method}
+                                </span>
+                                <code class="text-sm font-mono bg-background px-2 py-1 rounded border">${data.endpoint}</code>
+                            </div>
+                            <p class="text-sm text-muted-foreground">${data.description}</p>
+                        </div>
+                        <div class="text-xs text-muted-foreground">
+                            <div>Agent: ${data.agent_type.replace('_', ' ')}</div>
+                            <div>Sources: ${data.jira_docs_found}</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Authentication -->
+                    <div>
+                        <h4 class="font-semibold text-foreground mb-2 flex items-center">
+                            <i data-lucide="key" class="h-4 w-4 mr-2"></i>
+                            Authentication
+                        </h4>
+                        <p class="text-sm text-muted-foreground bg-secondary/20 p-3 rounded-lg">${data.authentication}</p>
+                    </div>
+                    
+                    <!-- Code Examples -->
+                    <div class="space-y-4">
+                        <!-- cURL Example -->
+                        <div class="border border-border rounded-lg overflow-hidden">
+                            <button onclick="toggleCodeSection('curl-section')" class="w-full flex items-center justify-between p-4 bg-secondary/50 hover:bg-secondary/70 transition-colors">
+                                <div class="flex items-center space-x-3">
+                                    <i data-lucide="terminal" class="h-4 w-4"></i>
+                                    <span class="font-semibold">cURL Example</span>
+                                    <span class="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">
+                                        ${data.method}
+                                    </span>
+                                </div>
+                                <i data-lucide="chevron-down" class="h-4 w-4 transform transition-transform" id="curl-chevron"></i>
+                            </button>
+                            <div id="curl-section" class="hidden border-t border-border">
+                                <div class="relative">
+                                    <pre class="bg-muted p-4 text-sm overflow-x-auto"><code>${escapeHtml(data.curl_example)}</code></pre>
+                                    <button onclick="copyToClipboard('${escapeForJs(data.curl_example)}')" class="absolute top-2 right-2 p-2 bg-background hover:bg-accent rounded text-xs transition-colors shadow-sm">
+                                        <i data-lucide="copy" class="h-3 w-3"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Python Example -->
+                        <div class="border border-border rounded-lg overflow-hidden">
+                            <button onclick="toggleCodeSection('python-section')" class="w-full flex items-center justify-between p-4 bg-secondary/50 hover:bg-secondary/70 transition-colors">
+                                <div class="flex items-center space-x-3">
+                                    <i data-lucide="code" class="h-4 w-4"></i>
+                                    <span class="font-semibold">Python Example</span>
+                                    <span class="text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded">
+                                        requests
+                                    </span>
+                                </div>
+                                <i data-lucide="chevron-down" class="h-4 w-4 transform transition-transform" id="python-chevron"></i>
+                            </button>
+                            <div id="python-section" class="hidden border-t border-border">
+                                <div class="relative">
+                                    <pre class="bg-muted p-4 text-sm overflow-x-auto"><code>${escapeHtml(data.python_example)}</code></pre>
+                                    <button onclick="copyToClipboard('${escapeForJs(data.python_example)}')" class="absolute top-2 right-2 p-2 bg-background hover:bg-accent rounded text-xs transition-colors shadow-sm">
+                                        <i data-lucide="copy" class="h-3 w-3"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Common Issues -->
+                    <div>
+                        <h4 class="font-semibold text-foreground mb-3 flex items-center">
+                            <i data-lucide="alert-triangle" class="h-4 w-4 mr-2"></i>
+                            Common Issues & Troubleshooting
+                        </h4>
+                        <ul class="space-y-2">
+                            ${data.common_issues.map(issue => `
+                                <li class="flex items-start space-x-2 text-sm">
+                                    <i data-lucide="minus" class="h-3 w-3 mt-1 text-muted-foreground flex-shrink-0"></i>
+                                    <span class="text-muted-foreground">${escapeHtml(issue)}</span>
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                    
+                    <!-- Related Operations -->
+                    <div>
+                        <h4 class="font-semibold text-foreground mb-3 flex items-center">
+                            <i data-lucide="link" class="h-4 w-4 mr-2"></i>
+                            ${data.agent_type === 'jira_category_explorer' ? 'Available Operations' : 'Related Operations'}
+                        </h4>
+                        ${data.agent_type === 'jira_category_explorer' ? 
+                            `<div class="space-y-4">
+                                ${organizeOperationsByType(data.related_operations)}
+                            </div>` :
+                            `<div class="flex flex-wrap gap-2">
+                                ${data.related_operations.map(operation => `
+                                    <button onclick="askJiraAgent('${escapeForJs(operation)}')" class="inline-flex items-center px-3 py-1 text-xs bg-primary/10 hover:bg-primary/20 text-primary rounded-full transition-colors">
+                                        ${escapeHtml(operation)}
+                                    </button>
+                                `).join('')}
+                            </div>`
+                        }
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('jiraResponseContent').innerHTML = responseContent;
+            
+            // Re-initialize Lucide icons
+            lucide.createIcons();
+            
+            // Scroll to response
+            document.getElementById('jiraResponse').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        
+        function displayJiraError(message) {
+            document.getElementById('jiraResponse').classList.remove('hidden');
+            document.getElementById('jiraConfidence').textContent = 'Error';
+            document.getElementById('jiraConfidence').className = 'text-xs px-2 py-1 rounded-full bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100';
+            
+            document.getElementById('jiraResponseContent').innerHTML = `
+                <div class="text-center py-8">
+                    <i data-lucide="alert-circle" class="h-12 w-12 text-destructive mx-auto mb-4"></i>
+                    <h3 class="text-lg font-semibold text-foreground mb-2">Jira Agent Error</h3>
+                    <p class="text-muted-foreground mb-4">${escapeHtml(message)}</p>
+                    <button onclick="askJiraAgent()" class="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary/90 transition-colors">
+                        <i data-lucide="refresh-cw" class="h-4 w-4 mr-2"></i>
+                        Try Again
+                    </button>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+        
+        function handleJiraKeyPress(event) {
+            if (event.key === 'Enter') {
+                askJiraAgent();
+            }
+        }
+        
+        function getMethodColor(method) {
+            const colors = {
+                'GET': 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100',
+                'POST': 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100',
+                'PUT': 'bg-orange-100 text-orange-800 dark:bg-orange-800 dark:text-orange-100',
+                'DELETE': 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100',
+                'PATCH': 'bg-purple-100 text-purple-800 dark:bg-purple-800 dark:text-purple-100'
+            };
+            return colors[method] || 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100';
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function escapeForJs(text) {
+            return text.replace(/'/g, "\\'").replace(/\n/g, '\\n').replace(/\r/g, '\\r');
+        }
+        
+        async function copyToClipboard(text) {
+            try {
+                await navigator.clipboard.writeText(text);
+                // Could add a toast notification here
+                console.log('Copied to clipboard');
+            } catch (err) {
+                console.error('Failed to copy: ', err);
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+            }
+        }
+        
+        function toggleCodeSection(sectionId) {
+            const section = document.getElementById(sectionId);
+            const chevron = document.getElementById(sectionId.replace('-section', '-chevron'));
+            
+            if (section.classList.contains('hidden')) {
+                section.classList.remove('hidden');
+                chevron.style.transform = 'rotate(180deg)';
+            } else {
+                section.classList.add('hidden');
+                chevron.style.transform = 'rotate(0deg)';
+            }
+        }
+        
+        function organizeOperationsByType(operations) {
+            // Group operations by type
+            const groups = {
+                'CREATE': [],
+                'GET': [],
+                'UPDATE': [],
+                'DELETE': [],
+                'OTHER': []
+            };
+            
+            operations.forEach(operation => {
+                const method = operation.split(' ')[0];
+                const title = operation.toLowerCase();
+                
+                // Categorize based on method and title
+                if (method === 'POST' || title.includes('create') || title.includes('add')) {
+                    groups['CREATE'].push(operation);
+                } else if (method === 'GET' || title.includes('get') || title.includes('search') || title.includes('list')) {
+                    groups['GET'].push(operation);
+                } else if (method === 'PUT' || method === 'PATCH' || title.includes('update') || title.includes('edit') || title.includes('modify')) {
+                    groups['UPDATE'].push(operation);
+                } else if (method === 'DELETE' || title.includes('delete') || title.includes('remove')) {
+                    groups['DELETE'].push(operation);
+                } else {
+                    groups['OTHER'].push(operation);
+                }
+            });
+            
+            // Create organized HTML
+            let html = '';
+            
+            Object.entries(groups).forEach(([method, ops]) => {
+                if (ops.length > 0) {
+                    const methodColors = {
+                        'GET': 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800',
+                        'CREATE': 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800',
+                        'UPDATE': 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800',
+                        'DELETE': 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800',
+                        'OTHER': 'bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-800'
+                    };
+                    
+                    const methodIcons = {
+                        'GET': '🔍',
+                        'CREATE': '📝',
+                        'UPDATE': '✏️',
+                        'DELETE': '🗑️',
+                        'OTHER': '⚙️'
+                    };
+                    
+                    const methodLabels = {
+                        'GET': 'Get/Search Operations',
+                        'CREATE': 'Create Operations',
+                        'UPDATE': 'Update Operations',
+                        'DELETE': 'Delete Operations',
+                        'OTHER': 'Other Operations'
+                    };
+                    
+                    html += `
+                        <div class="border ${methodColors[method]} rounded-lg p-4">
+                            <h5 class="font-medium text-sm mb-3 flex items-center space-x-2">
+                                <span>${methodIcons[method]}</span>
+                                <span>${methodLabels[method]} (${ops.length})</span>
+                            </h5>
+                            <div class="grid grid-cols-1 gap-2">
+                                ${ops.map(operation => {
+                                    const parts = operation.split(' - ');
+                                    const methodEndpoint = parts[0];
+                                    const title = parts[1] || methodEndpoint;
+                                    return `
+                                        <button onclick="askJiraAgent('${escapeForJs(operation)}')" 
+                                                class="text-left p-2 text-xs bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 rounded border border-gray-200 dark:border-gray-600 transition-colors">
+                                            <div class="font-mono text-xs text-blue-600 dark:text-blue-400">${escapeHtml(methodEndpoint)}</div>
+                                            <div class="text-gray-600 dark:text-gray-400 mt-1">${escapeHtml(title)}</div>
+                                        </button>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+            
+            return html;
+        }
+
+        // Load data when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDarkModePreference();
+            fetchApiStatus();
+            fetchProviders();
+        });
+    </script>
+</body>
+</html> 

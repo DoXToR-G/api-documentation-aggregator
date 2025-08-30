@@ -1,0 +1,12 @@
+{
+  "provider_id": 2,
+  "title": "Create Issue",
+  "description": "Creates an issue in a Jira project",
+  "endpoint_path": "/rest/api/3/issue",
+  "http_method": "POST",
+  "content": "{\"summary\": \"Create a new Jira issue\", \"description\": \"This endpoint creates a new issue\"}",
+  "tags": ["issue", "create", "jira"],
+  "category": "Issue Management",
+  "version": "3",
+  "deprecated": false
+}

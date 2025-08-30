@@ -1,0 +1,51 @@
+from pydantic_settings import BaseSettings
+from typing import List, Optional
+import os
+
+
+class Settings(BaseSettings):
+    # App Configuration
+    app_name: str = "API Documentation Aggregator"
+    debug: bool = True
+    version: str = "1.0.0"
+    
+    # Security
+    secret_key: str = "dev-secret-key-change-in-production"
+    
+    # Database
+    database_url: str = "postgresql://api_user:password@localhost:5432/api_docs_db"
+    
+    # Redis
+    redis_url: str = "redis://localhost:6379/0"
+    
+    # Elasticsearch
+    elasticsearch_url: str = "http://localhost:9200"
+    elasticsearch_index: str = "api_docs"
+    
+    # CORS
+    allowed_hosts: List[str] = ["localhost", "127.0.0.1", "http://localhost:3000"]
+    
+    # API Provider Settings
+    atlassian_api_token: Optional[str] = None
+    datadog_api_key: Optional[str] = None
+    datadog_app_key: Optional[str] = None
+    
+    # Background Jobs
+    celery_broker_url: str = "redis://localhost:6379/0"
+    celery_result_backend: str = "redis://localhost:6379/0"
+    
+    # Documentation Update Intervals (in minutes)
+    update_interval_atlassian: int = 60 * 24  # Daily
+    update_interval_datadog: int = 60 * 12    # Twice daily
+    update_interval_kubernetes: int = 60 * 24 # Daily
+    
+    # Logging
+    log_level: str = "INFO"
+    
+    class Config:
+        env_file = ".env"
+        case_sensitive = False
+
+
+# Global settings instance
+settings = Settings() 
