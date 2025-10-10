@@ -1,0 +1,126 @@
+#!/usr/bin/env python3
+"""
+Clean FastAPI Application with Database Support
+Simplified version that should definitely work
+"""
+
+from fastapi import FastAPI, HTTPException, Depends
+from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Create FastAPI app
+app = FastAPI(
+    title="MCP-Based API Documentation Aggregator",
+    description="Clean database version",
+    version="2.0.0"
+)
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.on_event("startup")
+async def startup_event():
+    """Create database tables on startup"""
+    try:
+        from app.db.database_simple import engine
+        from app.db.models_simple import Base
+        
+        Base.metadata.create_all(bind=engine)
+        logger.info("✅ Database tables created successfully")
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to create database tables: {e}")
+
+@app.get("/")
+async def root():
+    """Root endpoint"""
+    return {"message": "MCP-Based API Documentation Aggregator is running!"}
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    return {
+        "status": "healthy",
+        "service": "MCP-Based API Documentation Aggregator",
+        "version": "2.0.0",
+        "database": "enabled"
+    }
+
+@app.get("/test")
+async def test_endpoint():
+    """Test endpoint"""
+    return {"message": "Test endpoint working!", "status": "success"}
+
+@app.get("/api/providers")
+async def get_providers(db: Session = Depends(get_db)):
+    """Get API providers from database"""
+    try:
+        from app.db.models_simple import APIProvider
+        providers = db.query(APIProvider).all()
+        
+        return {
+            "providers": [
+                {
+                    "id": p.id,
+                    "name": p.name,
+                    "display_name": p.display_name,
+                    "is_active": p.is_active
+                }
+                for p in providers
+            ],
+            "count": len(providers)
+        }
+    except Exception as e:
+        logger.error(f"Failed to fetch providers: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch providers: {str(e)}")
+
+@app.get("/api/stats")
+async def get_api_stats(db: Session = Depends(get_db)):
+    """Get API statistics"""
+    try:
+        from app.db.models_simple import APIProvider, APIDocument, SearchLog
+        from sqlalchemy import func
+        
+        provider_count = db.query(func.count(APIProvider.id)).scalar()
+        document_count = db.query(func.count(APIDocument.id)).scalar()
+        search_count = db.query(func.count(SearchLog.id)).scalar()
+        
+        return {
+            "statistics": {
+                "providers": provider_count,
+                "documents": document_count,
+                "searches": search_count
+            },
+            "status": "success"
+        }
+    except Exception as e:
+        logger.error(f"Failed to get stats: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get stats: {str(e)}")
+
+def get_db():
+    """Get database session"""
+    try:
+        from app.db.database_simple import SessionLocal
+        db = SessionLocal()
+        try:
+            yield db
+        finally:
+            db.close()
+    except Exception as e:
+        logger.error(f"Database session error: {e}")
+        raise HTTPException(status_code=500, detail="Database connection failed")
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

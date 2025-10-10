@@ -1,12 +1,11 @@
 """
-Specialized Jira API Documentation Agent
+Specialized Jira API Documentation Agent (Mock for fast testing)
 Acts as an intelligent documentation helper for Jira Cloud REST API
 """
 import os
 import json
 import logging
 from typing import List, Dict, Any, Optional
-from openai import AsyncOpenAI
 from sqlalchemy.orm import Session
 
 from app.search.elasticsearch_client import search_documentation
@@ -18,36 +17,29 @@ logger = logging.getLogger(__name__)
 
 class JiraAgent:
     """Specialized agent for Jira Cloud API documentation"""
-    
+
     def __init__(self):
-        # Initialize OpenAI client
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            logger.warning("OPENAI_API_KEY not found, agent will use mock responses")
-            self.client = None
-        else:
-            self.client = AsyncOpenAI(api_key=api_key)
+        # Mock mode - no OpenAI dependency
+        logger.info("Jira Agent initialized in mock mode (no OpenAI dependency)")
+        self.client = None
     
     async def help_with_jira(self, user_request: str) -> Dict[str, Any]:
         """
         Help users with Jira API operations
-        
+
         Args:
             user_request: User's question about Jira API
-            
+
         Returns:
             Structured response with Jira-specific guidance
         """
-        
+
         # Search for relevant Jira documentation
         jira_docs = await self._search_jira_docs(user_request)
-        
-        # Generate response based on documentation
-        if self.client:
-            response = await self._generate_ai_response(user_request, jira_docs)
-        else:
-            response = self._generate_jira_response(user_request, jira_docs)
-        
+
+        # Generate response based on documentation (always mock mode)
+        response = self._generate_jira_response(user_request, jira_docs)
+
         return response
     
     async def _search_jira_docs(self, query: str) -> List[Dict]:
@@ -81,79 +73,6 @@ class JiraAgent:
         except Exception as e:
             logger.error(f"Error searching Jira documentation: {e}")
             return []
-    
-    async def _generate_ai_response(self, user_request: str, docs: List[Dict]) -> Dict[str, Any]:
-        """Generate AI response using OpenAI with Jira focus"""
-        
-        # Prepare Jira-specific context
-        context = self._prepare_jira_context(docs)
-        
-        system_prompt = """You are a Jira Cloud REST API documentation expert. 
-Your job is to help developers use the Jira API effectively.
-
-Given a user's question about Jira and relevant API documentation, provide:
-
-1. **Endpoint**: The exact Jira REST API endpoint
-2. **Method**: HTTP method (GET, POST, PUT, DELETE)
-3. **Description**: Clear explanation of what this does in Jira
-4. **Authentication**: Jira authentication requirements
-5. **cURL Example**: Complete working cURL command for Jira Cloud
-6. **Python Example**: Complete Python code using requests library
-7. **Common Issues**: Jira-specific troubleshooting tips
-8. **Related Operations**: Other Jira operations the user might need
-
-Format as JSON with these keys:
-- endpoint, method, description, authentication
-- curl_example, python_example  
-- common_issues (array), related_operations (array)
-
-Focus specifically on Jira Cloud REST API v3. Include Jira-specific details like:
-- Project keys, issue types, fields
-- Jira permissions and user management
-- Atlassian account IDs vs usernames
-- JQL (Jira Query Language) where relevant"""
-
-        user_prompt = f"""
-User Question: {user_request}
-
-Available Jira API Documentation:
-{context}
-
-Provide a comprehensive Jira API response in JSON format.
-"""
-
-        try:
-            response = await self.client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
-                ],
-                temperature=0.1,  # Very low for consistent API documentation
-                max_tokens=2000
-            )
-            
-            # Parse JSON response
-            content = response.choices[0].message.content.strip()
-            
-            # Remove code block markers if present
-            if content.startswith("```json"):
-                content = content[7:]
-            if content.endswith("```"):
-                content = content[:-3]
-            
-            result = json.loads(content)
-            
-            # Add metadata
-            result["agent_type"] = "jira_ai_generated"
-            result["confidence"] = "high" if docs else "medium"
-            result["jira_docs_found"] = len(docs)
-            
-            return result
-            
-        except Exception as e:
-            logger.error(f"Error generating AI response: {e}")
-            return self._generate_jira_response(user_request, docs)
     
     def _generate_jira_response(self, user_request: str, docs: List[Dict]) -> Dict[str, Any]:
         """Generate Jira-specific mock response when OpenAI is not available"""

@@ -1,8 +1,8 @@
-# API Documentation Aggregator
+# MCP-Based API Documentation Aggregator
 
 > **🚀 An Open-Source Project by Kamil DoXToR-G.**
 
-A comprehensive web application that automatically fetches, maintains, and provides searchable documentation for APIs from various providers such as Atlassian (Jira), Datadog, Kubernetes, and more.
+A next-generation, AI-powered API documentation service built on the **Model Context Protocol (MCP)** that automatically fetches, maintains, and provides intelligent search and assistance for APIs from various providers such as Atlassian (Jira), Datadog, Kubernetes, and more.
 
 **🌟 This is an open-source project - contributions are welcome!**
 
@@ -17,30 +17,36 @@ A comprehensive web application that automatically fetches, maintains, and provi
 
 ## 🚀 Features
 
-- 🔄 **Automatic API Documentation Fetching** - Scheduled updates from multiple providers
-- 🔍 **Intelligent Search** - Full-text search across all documentation with Elasticsearch
+- 🤖 **MCP (Model Context Protocol) Integration** - Modern AI agent framework
+- 🔍 **AI-Powered Semantic Search** - Vector-based search with ChromaDB
+- 💬 **Intelligent Chat Interface** - Real-time AI assistance via WebSocket
+- 🔄 **Automatic Documentation Fetching** - Scheduled updates from multiple providers
 - 📱 **Modern Web Interface** - Responsive design with dark/light themes
 - ⏰ **Scheduled Updates** - Keep documentation current with background tasks
 - 🏷️ **Smart Categorization** - Automatic tagging and organization of API endpoints
-- 📊 **Analytics & Insights** - Track usage patterns and popular searches
-- 🤖 **AI Agent Integration** - Intelligent documentation suggestions and queries
+- 📊 **Advanced Analytics** - AI-driven insights and usage patterns
+- 🧠 **Context-Aware Responses** - Intelligent understanding of user intent
 
 ## 🏗️ Architecture
 
-- **Frontend**: Modern HTML/CSS/JS with Tailwind CSS
-- **Backend**: FastAPI (Python) for high-performance REST API
-- **Database**: PostgreSQL with SQLAlchemy ORM
-- **Search Engine**: Elasticsearch for intelligent search capabilities
-- **Task Queue**: Celery with Redis for background job processing
-- **Containerization**: Docker & Docker Compose for easy deployment
+- **🤖 MCP Layer**: Model Context Protocol server with tool definitions
+- **🧠 AI Agent**: Intelligent query processing and context management
+- **🔍 Vector Store**: ChromaDB for semantic search and embeddings
+- **⚡ Backend**: FastAPI with WebSocket support for real-time communication
+- **🗄️ Database**: PostgreSQL with SQLAlchemy ORM for structured data
+- **🔎 Search Engine**: Elasticsearch + ChromaDB for hybrid search
+- **📊 Task Queue**: Celery with Redis for background processing
+- **🐳 Containerization**: Docker & Docker Compose for easy deployment
 
 ## 🛠️ Tech Stack
 
 ### Backend
-- **FastAPI** (Python 3.11+) - High-performance web framework
+- **FastAPI** (Python 3.11+) - High-performance web framework with WebSocket support
+- **MCP** (Model Context Protocol) - Modern AI agent framework
 - **SQLAlchemy + Alembic** - Database ORM & migrations
 - **PostgreSQL** - Reliable data storage
-- **Elasticsearch** - Advanced search engine
+- **ChromaDB** - Vector database for semantic search
+- **Elasticsearch** - Hybrid search engine
 - **Celery + Redis** - Background task processing
 - **Pydantic** - Data validation and serialization
 
@@ -70,27 +76,25 @@ A comprehensive web application that automatically fetches, maintains, and provi
    cd Latest_api_project
    ```
 
-2. **Start the development environment**:
+2. **Configure environment variables**:
+   ```bash
+   # Copy the example environment file
+   cp .env.example backend/.env
+
+   # Edit backend/.env and add your API keys (optional for basic functionality)
+   # IMPORTANT: Change SECRET_KEY for production use!
+   ```
+
+3. **Start the development environment**:
    ```bash
    docker-compose up -d
    ```
 
-3. **Install backend dependencies** (for local development):
-   ```bash
-   cd backend
-   pip install -r requirements.txt
-   ```
-
-4. **Run database migrations**:
-   ```bash
-   cd backend
-   alembic upgrade head
-   ```
-
-5. **Access the application**:
+4. **Access the application**:
    - Frontend: http://localhost:3000
    - Backend API: http://localhost:8000
    - API Documentation: http://localhost:8000/docs
+   - Admin Dashboard: http://localhost:3000/admin (default credentials: see Security section)
    - Health Check: http://localhost:8000/health
 
 ## 📁 Project Structure
@@ -100,43 +104,53 @@ Latest_api_project/
 ├── backend/                 # FastAPI backend
 │   ├── app/
 │   │   ├── api/            # API route handlers
+│   │   │   └── v1/         # API v1 endpoints
 │   │   ├── core/           # Core functionality & config
 │   │   ├── db/             # Database models & setup
 │   │   ├── fetchers/       # API documentation fetchers
-│   │   ├── search/         # Search engine integration
-│   │   ├── services/       # Business logic services
-│   │   └── tasks/          # Background task definitions
-│   ├── alembic/            # Database migrations
+│   │   ├── mcp/            # Model Context Protocol server
+│   │   ├── services/       # Business logic services (AI agent)
+│   │   ├── vector_store/   # ChromaDB integration
+│   │   └── main.py         # Main FastAPI application
 │   ├── scripts/            # Data import & utility scripts
+│   ├── Dockerfile          # Backend container config
 │   └── requirements.txt    # Python dependencies
-├── frontend-simple/         # HTML/CSS/JS frontend
+├── frontend/               # Modern web frontend
 ├── docker-compose.yml      # Development environment
-└── README.md               # This file
+├── TESTING.md             # Testing guide
+└── README.md              # This file
 ```
 
 ## 🔧 Configuration
 
-The application uses environment variables for configuration. Create `.env` files in the backend directory with:
+The application uses environment variables for configuration. A template file `.env.example` is provided in the root directory.
 
-```env
-# Database
-DATABASE_URL=postgresql://api_user:password@localhost:5432/api_docs_db
+### Environment Setup
 
-# Redis
-REDIS_URL=redis://localhost:6379/0
+1. **Copy the example file**:
+   ```bash
+   cp .env.example backend/.env
+   ```
 
-# Elasticsearch
-ELASTICSEARCH_URL=http://localhost:9200
-ELASTICSEARCH_INDEX=api_docs
+2. **Edit `backend/.env`** with your configuration:
+   ```env
+   # Database
+   DATABASE_URL=postgresql://api_user:password@localhost:5432/api_docs_db
 
-# Security
-SECRET_KEY=your-secret-key-here
+   # Security - CHANGE THESE IN PRODUCTION!
+   SECRET_KEY=your-secret-key-here
 
-# API Provider Keys
-ATLASSIAN_API_TOKEN=your-atlassian-token
-DATADOG_API_KEY=your-datadog-key
-DATADOG_APP_KEY=your-datadog-app-key
-```
+   # AI API Keys (Optional - for AI-powered features)
+   OPENAI_API_KEY=sk-your-openai-api-key-here
+   ANTHROPIC_API_KEY=sk-ant-your-anthropic-api-key-here
+
+   # API Provider Keys (Optional - for documentation fetching)
+   ATLASSIAN_API_TOKEN=your-atlassian-token
+   DATADOG_API_KEY=your-datadog-key
+   DATADOG_APP_KEY=your-datadog-app-key
+   ```
+
+3. **See `.env.example`** for all available configuration options
 
 ## 📚 Supported API Providers
 
@@ -169,16 +183,62 @@ cd backend
 pytest
 ```
 
+## 🔒 Security
+
+### ⚠️ IMPORTANT: Production Security Checklist
+
+Before deploying to production, **YOU MUST** change the following default credentials:
+
+1. **Database Password** in `docker-compose.yml`:
+   ```yaml
+   POSTGRES_PASSWORD: password  # ⚠️ CHANGE THIS!
+   ```
+
+2. **Secret Keys** in `docker-compose.yml`:
+   ```yaml
+   SECRET_KEY: dev-secret-key-change-in-production  # ⚠️ CHANGE THIS!
+   ```
+
+3. **Database Connection String**:
+   ```yaml
+   DATABASE_URL: postgresql://api_user:password@...  # ⚠️ CHANGE PASSWORD!
+   ```
+
+### Default Development Credentials
+
+The project includes default credentials for **LOCAL DEVELOPMENT ONLY**:
+- PostgreSQL: `api_user` / `password`
+- Secret Key: `dev-secret-key-change-in-production`
+
+**⚠️ These are intentionally weak and MUST be changed for any production deployment!**
+
+### API Keys Storage
+
+- **Frontend**: OpenAI API keys entered in the admin dashboard are stored in browser localStorage only
+- **Backend**: API keys should be set via environment variables in the `.env` file
+- **Never commit**: `.env` files are gitignored and should never be committed to version control
+
+### Recommended Production Setup
+
+1. Use strong, randomly generated passwords (32+ characters)
+2. Store secrets in a secure secret management system (e.g., AWS Secrets Manager, HashiCorp Vault)
+3. Enable HTTPS/TLS for all connections
+4. Use environment-specific configuration files
+5. Implement proper access controls and firewall rules
+
 ## 📦 Deployment
 
 ### Production Deployment
-1. Set up production environment variables
-2. Configure production database and Redis
-3. Set up Elasticsearch cluster
-4. Deploy using Docker or your preferred method
+1. **⚠️ CRITICAL**: Change all default passwords and secret keys (see Security section above)
+2. Set up production environment variables in `backend/.env`
+3. Configure production database and Redis with strong credentials
+4. Set up Elasticsearch cluster
+5. Enable HTTPS/TLS
+6. Deploy using Docker or your preferred method
 
 ### Docker Deployment
 ```bash
+# Ensure you've updated credentials first!
 docker-compose -f docker-compose.prod.yml up -d
 ```
 

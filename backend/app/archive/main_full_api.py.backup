@@ -1,0 +1,412 @@
+#!/usr/bin/env python3
+"""
+MCP-Based API Documentation Aggregator - Full API Version
+Complete implementation with search, AI, and MCP integration
+"""
+
+from fastapi import FastAPI, HTTPException, Depends, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from sqlalchemy.orm import Session
+from typing import List, Dict, Any, Optional
+import logging
+import json
+import asyncio
+from datetime import datetime
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Create FastAPI app
+app = FastAPI(
+    title="MCP-Based API Documentation Aggregator",
+    description="Complete API with search, AI, and MCP integration",
+    version="2.0.0"
+)
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# WebSocket connection manager
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+        logger.info(f"WebSocket connected. Total connections: {len(self.active_connections)}")
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+        logger.info(f"WebSocket disconnected. Total connections: {len(self.active_connections)}")
+
+    async def send_personal_message(self, message: str, websocket: WebSocket):
+        await websocket.send_text(message)
+
+    async def broadcast(self, message: str):
+        for connection in self.active_connections:
+            try:
+                await connection.send_text(message)
+            except:
+                # Remove dead connections
+                self.active_connections.remove(connection)
+
+manager = ConnectionManager()
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize database and services on startup"""
+    try:
+        # Import database components
+        from app.db.database_simple import engine, SessionLocal
+        from app.db.models_simple import Base, APIProvider
+        
+        logger.info("✅ Database components imported successfully")
+        
+        # Create tables
+        Base.metadata.create_all(bind=engine)
+        logger.info("✅ Database tables created successfully")
+        
+        # Test database connection
+        db = SessionLocal()
+        try:
+            count = db.query(APIProvider).count()
+            logger.info(f"✅ Database connection test successful: {count} providers found")
+        finally:
+            db.close()
+            
+        logger.info("🚀 Full API startup completed successfully")
+        
+    except Exception as e:
+        logger.error(f"❌ Startup failed: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+
+# Database dependency
+def get_db():
+    """Get database session"""
+    try:
+        from app.db.database_simple import SessionLocal
+        db = SessionLocal()
+        try:
+            yield db
+        finally:
+            db.close()
+    except Exception as e:
+        logger.error(f"Database session error: {e}")
+        raise HTTPException(status_code=500, detail="Database connection failed")
+
+# ============================================================================
+# CORE API ENDPOINTS
+# ============================================================================
+
+@app.get("/")
+async def root():
+    """Root endpoint"""
+    return {
+        "message": "MCP-Based API Documentation Aggregator is running!",
+        "version": "2.0.0",
+        "status": "operational",
+        "endpoints": {
+            "health": "/health",
+            "providers": "/api/providers",
+            "documents": "/api/documents",
+            "search": "/api/search",
+            "ai": "/ai/query",
+            "websocket": "/ws/ai"
+        }
+    }
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    return {
+        "status": "healthy",
+        "service": "MCP-Based API Documentation Aggregator",
+        "version": "2.0.0",
+        "database": "operational",
+        "timestamp": datetime.utcnow().isoformat()
+    }
+
+# ============================================================================
+# API PROVIDERS ENDPOINTS
+# ============================================================================
+
+@app.get("/api/providers")
+async def get_providers(db: Session = Depends(get_db)):
+    """Get all API providers"""
+    try:
+        from app.db.models_simple import APIProvider
+        
+        providers = db.query(APIProvider).filter(APIProvider.is_active == True).all()
+        
+        return {
+            "providers": [
+                {
+                    "id": p.id,
+                    "name": p.name,
+                    "display_name": p.display_name,
+                    "base_url": p.base_url,
+                    "documentation_url": p.documentation_url,
+                    "icon_url": p.icon_url,
+                    "description": p.description,
+                    "is_active": p.is_active
+                }
+                for p in providers
+            ],
+            "count": len(providers)
+        }
+    except Exception as e:
+        logger.error(f"Failed to fetch providers: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch providers: {str(e)}")
+
+@app.get("/api/providers/{provider_id}")
+async def get_provider(provider_id: int, db: Session = Depends(get_db)):
+    """Get specific API provider by ID"""
+    try:
+        from app.db.models_simple import APIProvider
+        
+        provider = db.query(APIProvider).filter(APIProvider.id == provider_id).first()
+        
+        if not provider:
+            raise HTTPException(status_code=404, detail="Provider not found")
+            
+        return {
+            "id": provider.id,
+            "name": provider.name,
+            "display_name": provider.display_name,
+            "base_url": provider.base_url,
+            "documentation_url": provider.documentation_url,
+            "icon_url": provider.icon_url,
+            "description": provider.description,
+            "is_active": provider.is_active
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to fetch provider {provider_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch provider: {str(e)}")
+
+# ============================================================================
+# API DOCUMENTS ENDPOINTS
+# ============================================================================
+
+@app.get("/api/documents")
+async def get_documents(
+    provider_id: Optional[int] = None,
+    limit: int = 100,
+    offset: int = 0,
+    db: Session = Depends(get_db)
+):
+    """Get API documents with optional filtering"""
+    try:
+        from app.db.models_simple import APIDocument
+        
+        query = db.query(APIDocument)
+        
+        if provider_id:
+            query = query.filter(APIDocument.provider_id == provider_id)
+            
+        documents = query.offset(offset).limit(limit).all()
+        
+        return {
+            "documents": [
+                {
+                    "id": doc.id,
+                    "provider_id": doc.provider_id,
+                    "title": doc.title,
+                    "content": doc.content[:500] + "..." if doc.content and len(doc.content) > 500 else doc.content,
+                    "url": doc.url,
+                    "method": doc.method,
+                    "endpoint": doc.endpoint,
+                    "tags": doc.tags
+                }
+                for doc in documents
+            ],
+            "count": len(documents),
+            "total": query.count()
+        }
+    except Exception as e:
+        logger.error(f"Failed to fetch documents: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch documents: {str(e)}")
+
+# ============================================================================
+# SEARCH ENDPOINTS
+# ============================================================================
+
+@app.get("/api/search")
+async def search_documents(
+    q: str,
+    provider_id: Optional[int] = None,
+    limit: int = 50,
+    db: Session = Depends(get_db)
+):
+    """Search API documents by query"""
+    try:
+        from app.db.models_simple import APIDocument, APIProvider
+        from sqlalchemy import or_
+        
+        # Build search query
+        search_query = f"%{q}%"
+        query = db.query(APIDocument).filter(
+            or_(
+                APIDocument.title.ilike(search_query),
+                APIDocument.content.ilike(search_query),
+                APIDocument.endpoint.ilike(search_query)
+            )
+        )
+        
+        if provider_id:
+            query = query.filter(APIDocument.provider_id == provider_id)
+            
+        documents = query.limit(limit).all()
+        
+        # Log search
+        try:
+            from app.db.models_simple import SearchLog
+            search_log = SearchLog(
+                query=q,
+                results_count=len(documents)
+            )
+            db.add(search_log)
+            db.commit()
+        except Exception as log_error:
+            logger.warning(f"Failed to log search: {log_error}")
+        
+        return {
+            "query": q,
+            "results": [
+                {
+                    "id": doc.id,
+                    "provider_id": doc.provider_id,
+                    "title": doc.title,
+                    "content": doc.content[:300] + "..." if doc.content and len(doc.content) > 300 else doc.content,
+                    "url": doc.url,
+                    "method": doc.method,
+                    "endpoint": doc.endpoint,
+                    "tags": doc.tags
+                }
+                for doc in documents
+            ],
+            "count": len(documents)
+        }
+    except Exception as e:
+        logger.error(f"Search failed for query '{q}': {e}")
+        raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
+
+# ============================================================================
+# AI ENDPOINTS
+# ============================================================================
+
+@app.post("/ai/query")
+async def ai_query(request: Dict[str, Any]):
+    """AI-powered query endpoint"""
+    try:
+        query = request.get("query", "")
+        context = request.get("context", "")
+        
+        if not query:
+            raise HTTPException(status_code=400, detail="Query is required")
+            
+        # Simple AI response for now (placeholder for MCP integration)
+        ai_response = {
+            "query": query,
+            "response": f"AI analysis of: {query}",
+            "context": context,
+            "suggestions": [
+                "Try searching for similar endpoints",
+                "Check the provider documentation",
+                "Use more specific keywords"
+            ],
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+        return ai_response
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"AI query failed: {e}")
+        raise HTTPException(status_code=500, detail=f"AI query failed: {str(e)}")
+
+# ============================================================================
+# WEBSOCKET ENDPOINTS
+# ============================================================================
+
+@app.websocket("/ws/ai")
+async def websocket_ai(websocket: WebSocket):
+    """WebSocket endpoint for real-time AI chat"""
+    await manager.connect(websocket)
+    try:
+        while True:
+            # Receive message
+            data = await websocket.receive_text()
+            message = json.loads(data)
+            
+            # Process AI message
+            query = message.get("query", "")
+            session_id = message.get("session_id", "default")
+            
+            # Generate AI response
+            ai_response = {
+                "type": "ai_response",
+                "session_id": session_id,
+                "query": query,
+                "response": f"AI response to: {query}",
+                "timestamp": datetime.utcnow().isoformat()
+            }
+            
+            # Send response back
+            await manager.send_personal_message(
+                json.dumps(ai_response), 
+                websocket
+            )
+            
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+    except Exception as e:
+        logger.error(f"WebSocket error: {e}")
+        manager.disconnect(websocket)
+
+# ============================================================================
+# ANALYTICS ENDPOINTS
+# ============================================================================
+
+@app.get("/api/analytics/search")
+async def get_search_analytics(db: Session = Depends(get_db)):
+    """Get search analytics"""
+    try:
+        from app.db.models_simple import SearchLog
+        
+        # Get recent searches
+        recent_searches = db.query(SearchLog).order_by(SearchLog.created_at.desc()).limit(10).all()
+        
+        # Get search count
+        total_searches = db.query(SearchLog).count()
+        
+        return {
+            "total_searches": total_searches,
+            "recent_searches": [
+                {
+                    "query": log.query,
+                    "results_count": log.results_count,
+                    "created_at": log.created_at.isoformat()
+                }
+                for log in recent_searches
+            ]
+        }
+    except Exception as e:
+        logger.error(f"Failed to fetch search analytics: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch analytics: {str(e)}")
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

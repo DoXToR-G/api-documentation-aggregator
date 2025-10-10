@@ -1,20 +1,42 @@
-from fastapi import FastAPI, HTTPException, Depends, Query
+from fastapi import FastAPI, HTTPException, Depends, Query, WebSocket, WebSocketDisconnect, Body
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
 import uvicorn
+import json
+import logging
+from typing import Dict, Any, Optional
 
 from app.core.config import settings
 from app.db.database import get_db, engine
 from app.db.models import Base
 from app.api.routes import api_router
+from app.services.enhanced_ai_agent import EnhancedAIAgent
+from app.vector_store.chroma_client import ChromaDBClient
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
+# Request models
+class AIQueryRequest(BaseModel):
+    query: str
+    context: Optional[Dict[str, Any]] = {}
+    session_id: Optional[str] = None
+
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
 
+# Initialize services
+ai_agent_service = EnhancedAIAgent()
+vector_store = ChromaDBClient()
+
 # Initialize FastAPI app
 app = FastAPI(
     title=settings.app_name,
-    description="Automatic API documentation fetcher and search platform",
+    description="MCP-Based API Documentation Aggregator with AI Agent",
     version=settings.version,
     docs_url="/docs",
     redoc_url="/redoc"
@@ -32,6 +54,16 @@ app.add_middleware(
 # Include API routes
 app.include_router(api_router, prefix="/api/v1")
 
+# Initialize AI agent on startup
+@app.on_event("startup")
+async def startup_event():
+    """Initialize services on startup"""
+    try:
+        await ai_agent_service.initialize()
+        logger.info("Enhanced AI Agent initialized successfully")
+    except Exception as e:
+        logger.error(f"Failed to initialize AI Agent: {str(e)}")
+
 
 @app.get("/")
 async def root():
@@ -39,9 +71,16 @@ async def root():
     return {
         "name": settings.app_name,
         "version": settings.version,
-        "description": "API Documentation Aggregator - Automatically fetch and search API documentation",
+        "description": "MCP-Based API Documentation Aggregator - AI-powered documentation service",
         "docs_url": "/docs",
-        "status": "running"
+        "status": "running",
+        "features": [
+            "MCP (Model Context Protocol) integration",
+            "AI-powered search and assistance",
+            "Vector-based semantic search",
+            "Intelligent API documentation",
+            "Real-time chat interface"
+        ]
     }
 
 
@@ -51,13 +90,155 @@ async def health_check(db: Session = Depends(get_db)):
     try:
         # Test database connection
         db.execute("SELECT 1")
+        
+        # Test vector store
+        vector_stats = vector_store.get_collection_stats()
+        
         return {
             "status": "healthy",
             "database": "connected",
+            "vector_store": "connected",
+            "vector_store_stats": vector_stats,
             "timestamp": "2024-01-01T00:00:00Z"
         }
     except Exception as e:
-        raise HTTPException(status_code=503, detail=f"Database connection failed: {str(e)}")
+        logger.error(f"Health check failed: {str(e)}")
+        raise HTTPException(status_code=503, detail=f"Service unhealthy: {str(e)}")
+
+
+@app.post("/ai/query")
+async def ai_query(request: AIQueryRequest):
+    """Process user query with AI agent"""
+    try:
+        response = await ai_agent_service.process_user_query(
+            query=request.query,
+            context=request.context,
+            session_id=request.session_id
+        )
+        return response
+    except Exception as e:
+        logger.error(f"AI query failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"AI processing failed: {str(e)}")
+
+
+@app.get("/ai/conversation/{session_id}")
+async def get_conversation_history(
+    session_id: str,
+    limit: int = Query(50, ge=1, le=100, description="Number of messages to return")
+):
+    """Get conversation history for a session"""
+    try:
+        history = ai_agent_service.get_conversation_history(
+            session_id=session_id,
+            limit=limit
+        )
+        return {
+            "session_id": session_id,
+            "history": history,
+            "total_messages": len(history)
+        }
+    except Exception as e:
+        logger.error(f"Failed to get conversation history: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve history: {str(e)}")
+
+
+@app.get("/ai/session/{session_id}/context")
+async def get_session_context(session_id: str):
+    """Get session context and insights"""
+    try:
+        context = ai_agent_service.get_session_context(session_id)
+        return {
+            "session_id": session_id,
+            "context": context
+        }
+    except Exception as e:
+        logger.error(f"Failed to get session context: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve context: {str(e)}")
+
+
+@app.get("/ai/status")
+async def get_ai_agent_status():
+    """Get AI agent status and statistics"""
+    try:
+        status = ai_agent_service.get_agent_status()
+        return status
+    except Exception as e:
+        logger.error(f"Failed to get AI agent status: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get status: {str(e)}")
+
+
+@app.delete("/ai/conversation/{session_id}")
+async def clear_conversation_history(session_id: str):
+    """Clear conversation history for a session"""
+    try:
+        ai_agent_service.clear_conversation_history(session_id=session_id)
+        return {"message": f"Conversation history cleared for session {session_id}"}
+    except Exception as e:
+        logger.error(f"Failed to clear conversation history: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to clear history: {str(e)}")
+
+
+@app.websocket("/ws/ai")
+async def websocket_endpoint(websocket: WebSocket):
+    """WebSocket endpoint for real-time AI interactions"""
+    await websocket.accept()
+    
+    try:
+        while True:
+            # Receive message from client
+            data = await websocket.receive_text()
+            message = json.loads(data)
+            
+            # Process message
+            if message.get("type") == "query":
+                query = message.get("query", "")
+                context = message.get("context", {})
+                session_id = message.get("session_id")
+                
+                # Process with AI agent
+                response = await ai_agent_service.process_user_query(
+                    query=query,
+                    context=context,
+                    session_id=session_id
+                )
+                
+                # Send response back
+                await websocket.send_text(json.dumps({
+                    "type": "response",
+                    "data": response
+                }))
+            
+            elif message.get("type") == "ping":
+                await websocket.send_text(json.dumps({"type": "pong"}))
+            
+            else:
+                await websocket.send_text(json.dumps({
+                    "type": "error",
+                    "message": "Unknown message type"
+                }))
+                
+    except WebSocketDisconnect:
+        logger.info("WebSocket client disconnected")
+    except Exception as e:
+        logger.error(f"WebSocket error: {str(e)}")
+        try:
+            await websocket.send_text(json.dumps({
+                "type": "error",
+                "message": str(e)
+            }))
+        except:
+            pass
+
+
+@app.get("/vector-store/stats")
+async def get_vector_store_stats():
+    """Get vector store statistics"""
+    try:
+        stats = vector_store.get_collection_stats()
+        return stats
+    except Exception as e:
+        logger.error(f"Failed to get vector store stats: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get stats: {str(e)}")
 
 
 if __name__ == "__main__":

@@ -4,6 +4,43 @@
 -- Create extensions if needed
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+-- Create the api_providers table
+CREATE TABLE IF NOT EXISTS api_providers (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) UNIQUE NOT NULL,
+    display_name VARCHAR(200) NOT NULL,
+    base_url TEXT NOT NULL,
+    documentation_url TEXT NOT NULL,
+    icon_url TEXT,
+    description TEXT,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create the api_documents table
+CREATE TABLE IF NOT EXISTS api_documents (
+    id SERIAL PRIMARY KEY,
+    provider_id INTEGER REFERENCES api_providers(id),
+    title VARCHAR(500) NOT NULL,
+    content TEXT NOT NULL,
+    url TEXT,
+    method VARCHAR(10),
+    endpoint VARCHAR(500),
+    tags TEXT[],
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create the search_logs table
+CREATE TABLE IF NOT EXISTS search_logs (
+    id SERIAL PRIMARY KEY,
+    query TEXT NOT NULL,
+    results_count INTEGER DEFAULT 0,
+    search_time_ms INTEGER,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Insert default API providers
 INSERT INTO api_providers (name, display_name, base_url, documentation_url, icon_url, description, is_active) VALUES
 ('datadog', 'Datadog', 'https://api.datadoghq.com', 'https://docs.datadoghq.com/api/latest/', 'https://datadog-docs.imgix.net/images/dd_logo_n_70x75.png', 'Monitoring and observability platform with comprehensive APIs for metrics, logs, and traces', true),
