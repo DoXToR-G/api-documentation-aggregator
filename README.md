@@ -6,6 +6,8 @@ A next-generation, AI-powered API documentation service built on the **Model Con
 
 **🌟 This is an open-source project - contributions are welcome!**
 
+Project is not done Yet. Coding and developing still in progress!!
+
 ## 👨‍💻 Author
 
 **Kamil DoXToR-G.** - Full-stack developer passionate about creating useful tools for the developer community.
