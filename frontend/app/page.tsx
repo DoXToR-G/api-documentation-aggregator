@@ -105,11 +105,9 @@ export default function Home() {
         </div>
 
         {/* Chat Interface */}
-        {showChat && (
-          <div className="max-w-4xl mx-auto mb-16 h-[600px] animate-slide-up">
-            <ChatInterface />
-          </div>
-        )}
+        <div className={`max-w-4xl mx-auto mb-16 h-[600px] transition-all duration-300 ${showChat ? 'opacity-100 scale-100' : 'opacity-0 scale-95 h-0 overflow-hidden'}`}>
+          {showChat && <ChatInterface />}
+        </div>
 
         {/* Features Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">

@@ -46,7 +46,7 @@ class APIDocumentation(Base):
     
     # Metadata
     tags = Column(JSON)  # Categories/tags
-    version = Column(String(50))
+    version = Column(String(200))  # Increased from 50 to handle long version strings
     deprecated = Column(Boolean, default=False)
     
     # Timestamps
@@ -63,7 +63,8 @@ class APIDocumentation(Base):
     # Indexes for better query performance
     __table_args__ = (
         Index('ix_api_docs_provider_endpoint', 'provider_id', 'endpoint_path', 'http_method'),
-        Index('ix_api_docs_search', 'title', 'description'),
+        # Removed ix_api_docs_search due to btree size limitations with long descriptions
+        # Use full-text search on search_vector column instead
     )
 
 

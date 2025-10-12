@@ -13,7 +13,9 @@ import {
   Play,
   Loader2,
   Key,
-  Save
+  Save,
+  Terminal,
+  X
 } from 'lucide-react';
 import axios from 'axios';
 import GameOfLife from '@/components/GameOfLife';
@@ -36,6 +38,12 @@ interface SyncStatus {
   error?: string;
 }
 
+interface LogEntry {
+  timestamp: string;
+  level: 'info' | 'success' | 'error' | 'warning';
+  message: string;
+}
+
 export default function AdminDashboard() {
   const router = useRouter();
   const [providers, setProviders] = useState<Provider[]>([]);
@@ -45,6 +53,23 @@ export default function AdminDashboard() {
   const [openAIKey, setOpenAIKey] = useState('');
   const [showSettings, setShowSettings] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
+  const [showLogs, setShowLogs] = useState(false);
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const logsEndRef = React.useRef<HTMLDivElement>(null);
+
+  // Auto-scroll logs to bottom
+  useEffect(() => {
+    logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [logs]);
+
+  const addLog = (level: 'info' | 'success' | 'error' | 'warning', message: string) => {
+    const timestamp = new Date().toLocaleTimeString();
+    setLogs(prev => [...prev, { timestamp, level, message }]);
+  };
+
+  const clearLogs = () => {
+    setLogs([]);
+  };
 
   useEffect(() => {
     // Check authentication
@@ -66,7 +91,8 @@ export default function AdminDashboard() {
 
   const loadProviders = async () => {
     try {
-      const response = await axios.get('http://localhost:8000/api/v1/providers');
+      const response = await axios.get('http://localhost:8000/api/v1/providers/');
+      console.log('Providers response:', response.data);
       setProviders(response.data);
     } catch (error) {
       console.error('Failed to load providers:', error);
@@ -76,43 +102,41 @@ export default function AdminDashboard() {
   const loadSyncStatus = async () => {
     setIsLoading(true);
     try {
-      const response = await axios.get('http://localhost:8000/api/v1/fetcher/status/logs');
+      // Use the new stats endpoint which gives us actual database counts
+      const response = await axios.get('http://localhost:8000/api/v1/providers/stats');
       const data = response.data;
 
-      // Extract logs array from response object (API returns {logs: [...], count: N})
-      const logs = data.logs || [];
+      console.log('Provider stats response:', data);
 
-      // Process logs to get sync status
-      const statuses: Record<string, SyncStatus> = {
-        'Atlassian': { provider: 'Atlassian', status: 'never' },
-        'Datadog': { provider: 'Datadog', status: 'never' },
-        'Kubernetes': { provider: 'Kubernetes', status: 'never' },
-      };
+      // Initialize with default values
+      const statuses: Record<string, SyncStatus> = {};
 
-      // Update statuses based on logs
-      if (Array.isArray(logs)) {
-        logs.forEach((log: any) => {
-          if (statuses[log.provider_name]) {
-            statuses[log.provider_name] = {
-              provider: log.provider_name,
-              status: log.status === 'completed' ? 'synced' : log.status === 'failed' ? 'failed' : 'syncing',
-              last_sync: log.started_at || log.completed_at,
-              endpoints_count: log.total_endpoints || 0,
-              error: log.error_message
-            };
-          }
+      // Process provider stats
+      if (data?.providers && Array.isArray(data.providers)) {
+        console.log('Processing', data.providers.length, 'providers');
+
+        data.providers.forEach((provider: any) => {
+          console.log('Processing provider:', provider.display_name, provider.endpoint_count);
+
+          const displayName = provider.display_name;
+
+          statuses[displayName] = {
+            provider: displayName,
+            status: provider.endpoint_count > 0 ? 'synced' :
+                   provider.last_sync_status === 'failed' ? 'failed' :
+                   provider.last_sync_status === 'running' ? 'syncing' : 'never',
+            last_sync: provider.last_sync_time || provider.last_successful_sync,
+            endpoints_count: provider.endpoint_count || 0,
+            error: undefined
+          };
         });
       }
 
+      console.log('Final statuses:', statuses);
       setSyncStatuses(statuses);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to load sync status:', error);
-      // Set default statuses even on error
-      setSyncStatuses({
-        'Atlassian': { provider: 'Atlassian', status: 'never' },
-        'Datadog': { provider: 'Datadog', status: 'never' },
-        'Kubernetes': { provider: 'Kubernetes', status: 'never' },
-      });
+      addLog('error', `Failed to load stats: ${error.message}`);
     } finally {
       setIsLoading(false);
     }
@@ -120,24 +144,75 @@ export default function AdminDashboard() {
 
   const handleSyncAll = async () => {
     setIsSyncing(true);
+    setShowLogs(true);
+    clearLogs();
+
     try {
-      await axios.post('http://localhost:8000/api/v1/fetcher/sync/all');
-      setTimeout(() => {
-        loadSyncStatus();
+      addLog('info', '🔄 Starting sync for all providers...');
+
+      // Use use_celery=false to run sync immediately instead of queuing in Celery
+      const response = await axios.post('http://localhost:8000/api/v1/fetcher/sync/all?use_celery=false');
+
+      addLog('info', `✓ Sync request sent: ${response.data.status}`);
+      addLog('info', '⏳ Fetching documentation from APIs...');
+
+      // Poll for updates
+      const pollInterval = setInterval(async () => {
+        try {
+          const statsResponse = await axios.get('http://localhost:8000/api/v1/providers/stats');
+          const providers = statsResponse.data.providers || [];
+
+          providers.forEach((provider: any) => {
+            if (provider.endpoint_count > 0) {
+              addLog('success', `✓ ${provider.display_name}: ${provider.endpoint_count} endpoints`);
+            }
+          });
+        } catch (error) {
+          console.error('Poll error:', error);
+        }
+      }, 1000);
+
+      setTimeout(async () => {
+        clearInterval(pollInterval);
+        await loadSyncStatus();
+        addLog('success', '✅ Sync completed! Refreshing dashboard...');
         setIsSyncing(false);
-      }, 2000);
-    } catch (error) {
+      }, 5000);
+    } catch (error: any) {
       console.error('Sync failed:', error);
+      addLog('error', `❌ Sync failed: ${error.message || 'Unknown error'}`);
       setIsSyncing(false);
     }
   };
 
   const handleSyncProvider = async (providerName: string) => {
+    setShowLogs(true);
+    clearLogs();
+
     try {
-      await axios.post(`http://localhost:8000/api/v1/fetcher/sync/provider/${providerName.toLowerCase()}`);
-      setTimeout(() => loadSyncStatus(), 2000);
-    } catch (error) {
+      addLog('info', `🔄 Starting sync for ${providerName}...`);
+      addLog('info', '⏳ Connecting to API...');
+
+      // Use use_celery=false to run sync immediately instead of queuing in Celery
+      const response = await axios.post(`http://localhost:8000/api/v1/fetcher/sync/provider/${providerName.toLowerCase()}?use_celery=false`);
+
+      addLog('info', `✓ Sync request sent: ${response.data.status}`);
+      addLog('info', '⏳ Fetching documentation...');
+
+      setTimeout(async () => {
+        await loadSyncStatus();
+        const statsResponse = await axios.get('http://localhost:8000/api/v1/providers/stats');
+        const provider = statsResponse.data.providers?.find((p: any) => p.name === providerName.toLowerCase());
+
+        if (provider) {
+          addLog('success', `✅ Sync completed: ${provider.endpoint_count} endpoints fetched`);
+        } else {
+          addLog('warning', '⚠️ Sync completed but no data found');
+        }
+      }, 3000);
+    } catch (error: any) {
       console.error(`Sync failed for ${providerName}:`, error);
+      addLog('error', `❌ Sync failed: ${error.message || 'Unknown error'}`);
     }
   };
 
@@ -266,8 +341,57 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* Sync All Button */}
-        <div className="mb-6">
+        {/* Logs Window */}
+        {showLogs && (
+          <div className="mb-6 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+              <div className="flex items-center gap-2">
+                <Terminal className="w-5 h-5 text-indigo-600" />
+                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                  Sync Logs
+                </h2>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={clearLogs}
+                  className="px-3 py-1 text-sm bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-all"
+                >
+                  Clear
+                </button>
+                <button
+                  onClick={() => setShowLogs(false)}
+                  className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-all"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+            <div className="p-4 bg-gray-900 dark:bg-black font-mono text-sm max-h-96 overflow-y-auto">
+              {logs.length === 0 ? (
+                <div className="text-gray-500 italic">No logs yet. Start a sync operation to see logs.</div>
+              ) : (
+                logs.map((log, index) => (
+                  <div
+                    key={index}
+                    className={`py-1 ${
+                      log.level === 'success' ? 'text-green-400' :
+                      log.level === 'error' ? 'text-red-400' :
+                      log.level === 'warning' ? 'text-yellow-400' :
+                      'text-gray-300'
+                    }`}
+                  >
+                    <span className="text-gray-500">[{log.timestamp}]</span>{' '}
+                    <span>{log.message}</span>
+                  </div>
+                ))
+              )}
+              <div ref={logsEndRef} />
+            </div>
+          </div>
+        )}
+
+        {/* Sync All Button and View Logs */}
+        <div className="mb-6 flex items-center gap-4">
           <button
             onClick={handleSyncAll}
             disabled={isSyncing}
@@ -285,6 +409,15 @@ export default function AdminDashboard() {
               </>
             )}
           </button>
+          {logs.length > 0 && !showLogs && (
+            <button
+              onClick={() => setShowLogs(true)}
+              className="px-6 py-4 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2"
+            >
+              <Terminal className="w-5 h-5" />
+              View Logs ({logs.length})
+            </button>
+          )}
         </div>
 
         {/* Provider Status Cards */}

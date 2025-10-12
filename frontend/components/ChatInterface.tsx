@@ -38,7 +38,11 @@ export default function ChatInterface({ apiUrl = 'http://localhost:8000' }: Chat
   };
 
   useEffect(() => {
-    scrollToBottom();
+    // Only auto-scroll if there's more than just the welcome message
+    // This prevents scrolling on initial mount
+    if (messages.length > 1) {
+      scrollToBottom();
+    }
   }, [messages]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -63,20 +67,82 @@ export default function ChatInterface({ apiUrl = 'http://localhost:8000' }: Chat
         session_id: null
       });
 
+      console.log('AI Response:', response.data);
+
+      // Extract and format the response text
+      let responseText = 'I received your message but couldn\'t generate a response.';
+
+      if (response.data && response.data.response) {
+        const aiResponse = response.data.response;
+
+        // Handle different response types
+        if (typeof aiResponse === 'string') {
+          responseText = aiResponse;
+        } else if (typeof aiResponse === 'object') {
+          // Handle error responses (with help_examples array)
+          if (aiResponse.error) {
+            responseText = `Error: ${aiResponse.error}`;
+          }
+          // Handle error type with message, suggestion, and help_examples
+          else if (aiResponse.type === 'error') {
+            responseText = aiResponse.message || 'An error occurred.';
+            if (aiResponse.suggestion) {
+              responseText += `\n\n${aiResponse.suggestion}`;
+            }
+            if (aiResponse.help_examples && Array.isArray(aiResponse.help_examples)) {
+              responseText += '\n\n' + aiResponse.help_examples.join('\n');
+            }
+          }
+          // Handle enhanced search results
+          else if (aiResponse.type === 'enhanced_search_results' && aiResponse.results) {
+            if (aiResponse.results.length === 0) {
+              responseText = `I couldn't find any results for "${input}". Try rephrasing your query or check if the provider data has been synced.`;
+            } else {
+              responseText = `I found ${aiResponse.results.length} relevant endpoint(s):\n\n`;
+              aiResponse.results.forEach((result: any, index: number) => {
+                responseText += `${index + 1}. **${result.title || result.endpoint}**\n`;
+                responseText += `   Method: ${result.method || 'N/A'}\n`;
+                responseText += `   Provider: ${result.provider || 'N/A'}\n`;
+                if (result.description) {
+                  responseText += `   Description: ${result.description}\n`;
+                }
+                responseText += `   Endpoint: ${result.endpoint || 'N/A'}\n\n`;
+              });
+            }
+          }
+          // Handle other object types with type and message
+          else if (aiResponse.type && aiResponse.message) {
+            responseText = aiResponse.message;
+          }
+          // Fallback to JSON string
+          else {
+            responseText = JSON.stringify(aiResponse, null, 2);
+          }
+        }
+      }
+
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: response.data.response || 'I received your message but couldn\'t generate a response.',
+        content: responseText,
         timestamp: new Date().toISOString()
       };
 
       setMessages(prev => [...prev, aiMessage]);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Chat error:', error);
+
+      let errorText = 'Sorry, I encountered an error. Please try again.';
+      if (error.response?.data?.detail) {
+        errorText = `Error: ${error.response.data.detail}`;
+      } else if (error.message) {
+        errorText = `Error: ${error.message}`;
+      }
+
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: 'Sorry, I encountered an error. Please try again.',
+        content: errorText,
         timestamp: new Date().toISOString()
       };
       setMessages(prev => [...prev, errorMessage]);

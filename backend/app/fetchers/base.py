@@ -44,16 +44,22 @@ class BaseFetcher(ABC):
         try:
             if not self.session:
                 raise RuntimeError("Fetcher must be used as async context manager")
-            
+
             response = await self.session.get(url, headers=headers, **kwargs)
             response.raise_for_status()
-            
+
             content_type = response.headers.get('content-type', '')
-            if 'application/json' in content_type:
-                return response.json()
-            else:
+            logger.info(f"Response content-type: {content_type}")
+
+            # Try to parse as JSON regardless of content-type
+            try:
+                json_data = response.json()
+                logger.info(f"Successfully parsed JSON response, top-level keys: {list(json_data.keys()) if isinstance(json_data, dict) else 'not a dict'}")
+                return json_data
+            except Exception as json_error:
+                logger.warning(f"Failed to parse JSON: {str(json_error)}, returning text")
                 return {"content": response.text, "content_type": content_type}
-                
+
         except httpx.RequestError as e:
             logger.error(f"Request error for {url}: {str(e)}")
             raise
@@ -64,15 +70,22 @@ class BaseFetcher(ABC):
     def parse_openapi_spec(self, spec: Dict[str, Any]) -> List[APIDocumentationCreate]:
         """Parse OpenAPI/Swagger specification"""
         docs = []
-        
+
         try:
             paths = spec.get('paths', {})
             base_info = spec.get('info', {})
             servers = spec.get('servers', [])
-            
+
+            logger.info(f"Parsing OpenAPI spec with {len(paths)} paths")
+
             for path, path_info in paths.items():
                 for method, method_info in path_info.items():
+                    # Skip non-method properties
                     if method.upper() not in ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS']:
+                        continue
+
+                    # Skip if method_info is not a dict (could be parameters, etc.)
+                    if not isinstance(method_info, dict):
                         continue
                     
                     # Extract documentation information
@@ -109,29 +122,35 @@ class BaseFetcher(ABC):
                     
                     # Check if deprecated
                     deprecated = method_info.get('deprecated', False)
-                    
-                    doc = APIDocumentationCreate(
-                        provider_id=self.provider_id,
-                        endpoint_path=path,
-                        http_method=HTTPMethod(method.upper()),
-                        title=title,
-                        description=description,
-                        content=self._generate_content(method_info),
-                        parameters={'parameters': parameters} if parameters else None,
-                        request_body=request_body,
-                        responses=responses,
-                        examples=examples,
-                        tags=tags,
-                        version=base_info.get('version'),
-                        deprecated=deprecated
-                    )
-                    
-                    docs.append(doc)
-        
+
+                    try:
+                        doc = APIDocumentationCreate(
+                            provider_id=self.provider_id,
+                            endpoint_path=path,
+                            http_method=HTTPMethod(method.upper()),
+                            title=title,
+                            description=description,
+                            content=self._generate_content(method_info),
+                            parameters={'parameters': parameters} if parameters else None,
+                            request_body=request_body,
+                            responses=responses,
+                            examples=examples,
+                            tags=tags,
+                            version=base_info.get('version'),
+                            deprecated=deprecated
+                        )
+
+                        docs.append(doc)
+                    except Exception as e:
+                        logger.error(f"Error creating doc for {method.upper()} {path}: {str(e)}")
+                        continue
+
+            logger.info(f"Successfully parsed {len(docs)} endpoints from OpenAPI spec")
+
         except Exception as e:
             logger.error(f"Error parsing OpenAPI spec: {str(e)}")
             raise
-        
+
         return docs
     
     def _generate_content(self, method_info: Dict[str, Any]) -> str:

@@ -116,11 +116,11 @@ class EnhancedAIAgent:
         # Enhanced intent classification with confidence scoring
         intent_patterns = {
             'search': {
-                'keywords': ['search', 'find', 'look for', 'where is', 'how to'],
+                'keywords': ['search', 'find', 'look for', 'where is', 'how to', 'list', 'show', 'get all', 'display'],
                 'confidence_base': 0.9
             },
             'endpoint_info': {
-                'keywords': ['endpoint', 'api', 'method', 'what does', 'how does'],
+                'keywords': ['endpoint', 'tell me about', 'what does', 'how does', 'explain'],
                 'confidence_base': 0.8
             },
             'analytics': {
@@ -255,22 +255,73 @@ class EnhancedAIAgent:
             }
     
     async def _handle_enhanced_search_query(
-        self, 
-        query: str, 
+        self,
+        query: str,
         context: Optional[Dict[str, Any]],
         session_id: str
     ) -> Dict[str, Any]:
         """Handle enhanced search queries with context awareness"""
         try:
-            # Extract search parameters from context
-            provider_ids = context.get('provider_ids') if context else None
-            methods = context.get('methods') if context else None
-            
-            # Use MCP search tool
+            # Extract search parameters from context - ensure they're arrays
+            provider_ids = context.get('provider_ids', []) if context else []
+            methods = context.get('methods', []) if context else []
+
+            # Detect provider names in query
+            query_lower = query.lower()
+            provider_map = {
+                'atlassian': 2,
+                'jira': 2,
+                'kubernetes': 3,
+                'k8s': 3,
+                'datadog': 1
+            }
+
+            # Auto-detect provider if not specified in context
+            if not provider_ids:
+                for provider_name, provider_id in provider_map.items():
+                    if provider_name in query_lower:
+                        provider_ids = [provider_id]
+                        logger.info(f"Auto-detected provider: {provider_name} (ID: {provider_id})")
+                        break
+
+            # Clean query by removing noise words
+            noise_words = [
+                'list', 'show', 'display', 'get', 'all', 'the', 'a', 'an',
+                'apis', 'api', 'endpoints', 'endpoint',
+                'how', 'what', 'when', 'where', 'why', 'which', 'who',
+                'can', 'could', 'should', 'would', 'do', 'does', 'did',
+                'any', 'some', 'provide', 'give', 'tell', 'me', 'you',
+                'from', 'for', 'with', 'about', 'to', 'of', 'in', 'on', 'at'
+            ]
+            cleaned_query = query_lower
+            for noise_word in noise_words:
+                # Remove as whole word to avoid partial matches
+                cleaned_query = cleaned_query.replace(f' {noise_word} ', ' ')
+                cleaned_query = cleaned_query.replace(f'{noise_word} ', '')
+                cleaned_query = cleaned_query.replace(f' {noise_word}', '')
+
+            cleaned_query = cleaned_query.strip()
+
+            # If query becomes empty after cleaning and provider is detected, search all from that provider
+            if not cleaned_query and provider_ids:
+                cleaned_query = ""  # Empty query with provider filter = all endpoints from that provider
+                logger.info(f"Query cleaned to empty, will return all endpoints from provider {provider_ids}")
+            elif cleaned_query != query_lower:
+                logger.info(f"Query cleaned from '{query}' to '{cleaned_query}'")
+
+            search_query = cleaned_query if cleaned_query else query
+
+            # Ensure they're lists
+            if not isinstance(provider_ids, list):
+                provider_ids = [provider_ids] if provider_ids else []
+            if not isinstance(methods, list):
+                methods = [methods] if methods else []
+
+            # Use MCP search tool with cleaned query
             search_results = await self.mcp_client.call_tool(
                 "search_api_docs",
                 {
-                    "query": query,
+                    "query": search_query,
                     "provider_ids": provider_ids,
                     "methods": methods,
                     "limit": 10
@@ -279,7 +330,9 @@ class EnhancedAIAgent:
             
             if "error" in search_results:
                 return search_results
-            
+
+            logger.info(f"MCP search returned {len(search_results.get('results', []))} results")
+
             # Enhance results with additional context
             enhanced_results = []
             for result in search_results.get('results', []):
@@ -287,11 +340,13 @@ class EnhancedAIAgent:
                 enhanced_result['search_relevance'] = self._calculate_search_relevance(query, result)
                 enhanced_result['usage_tips'] = self._generate_usage_tips(result)
                 enhanced_results.append(enhanced_result)
-            
+
+            logger.info(f"Returning {len(enhanced_results)} enhanced results")
+
             return {
                 'type': 'enhanced_search_results',
                 'results': enhanced_results,
-                'total': search_results.get('total', 0),
+                'total': len(enhanced_results),
                 'query': query,
                 'filters_applied': {
                     'provider_ids': provider_ids,

@@ -164,35 +164,133 @@ class MCPClient:
             return {"error": f"Unknown tool: {tool_name}"}
     
     async def _execute_search_tool(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
-        """Execute search API docs tool"""
+        """Execute search API docs tool with real database search"""
         query = arguments.get("query", "")
         provider_ids = arguments.get("provider_ids", [])
         methods = arguments.get("methods", [])
         limit = arguments.get("limit", 10)
-        
-        # Simulate search results
-        results = [
-            {
-                "id": 1,
-                "title": f"API Endpoint for: {query}",
-                "description": f"This endpoint provides functionality related to {query}",
-                "provider": "Sample Provider",
-                "endpoint": f"/api/v1/{query.lower().replace(' ', '-')}",
-                "method": "GET",
-                "relevance_score": 0.95
+
+        logger.info(f"Searching database for query: '{query}', providers: {provider_ids}, methods: {methods}")
+
+        try:
+            from app.db.database import SessionLocal
+            from app.db.models import APIDocumentation, APIProvider
+            from sqlalchemy import or_
+
+            db = SessionLocal()
+
+            try:
+                # Build query
+                db_query = db.query(APIDocumentation).join(APIProvider)
+
+                # Apply filters
+                if provider_ids:
+                    db_query = db_query.filter(APIDocumentation.provider_id.in_(provider_ids))
+
+                if methods:
+                    db_query = db_query.filter(APIDocumentation.http_method.in_(methods))
+
+                # Text search on title, description, and endpoint path
+                if query:
+                    # Split query into words for better matching
+                    # "how to create issue" -> ["how", "to", "create", "issue"]
+                    words = [w.strip() for w in query.split() if len(w.strip()) > 2]
+
+                    if words:
+                        # Create OR conditions for each word
+                        search_conditions = []
+                        for word in words:
+                            search_term = f"%{word}%"
+                            search_conditions.append(
+                                or_(
+                                    APIDocumentation.title.ilike(search_term),
+                                    APIDocumentation.description.ilike(search_term),
+                                    APIDocumentation.endpoint_path.ilike(search_term),
+                                    APIDocumentation.content.ilike(search_term)
+                                )
+                            )
+                        # Match if ANY word matches
+                        db_query = db_query.filter(or_(*search_conditions))
+                    else:
+                        # If no words after filtering, search with full query
+                        search_term = f"%{query}%"
+                        db_query = db_query.filter(
+                            or_(
+                                APIDocumentation.title.ilike(search_term),
+                                APIDocumentation.description.ilike(search_term),
+                                APIDocumentation.endpoint_path.ilike(search_term),
+                                APIDocumentation.content.ilike(search_term)
+                            )
+                        )
+
+                # Get results (no limit yet, we'll rank them first)
+                results_list = db_query.all()
+
+                logger.info(f"Found {len(results_list)} results in database")
+
+                # Calculate relevance scores for ranking
+                scored_results = []
+                for doc in results_list:
+                    score = 0
+                    title_lower = (doc.title or "").lower()
+                    desc_lower = (doc.description or "").lower()
+
+                    # Count word matches (if we split query into words)
+                    if query and words:
+                        for word in words:
+                            word_lower = word.lower()
+                            # Title matches are worth more
+                            if word_lower in title_lower:
+                                score += 10
+                            # Description matches worth less
+                            if word_lower in desc_lower:
+                                score += 2
+                            # Endpoint path matches
+                            if doc.endpoint_path and word_lower in doc.endpoint_path.lower():
+                                score += 5
+
+                    scored_results.append((score, doc))
+
+                # Sort by relevance score (highest first), then apply limit
+                scored_results.sort(key=lambda x: x[0], reverse=True)
+                top_results = scored_results[:limit]
+
+                # Format results
+                formatted_results = []
+                for score, doc in top_results:
+                    formatted_results.append({
+                        "id": doc.id,
+                        "title": doc.title,
+                        "description": (doc.description[:250] + "...") if doc.description and len(doc.description) > 250 else doc.description,
+                        "provider": doc.provider.display_name,
+                        "endpoint": doc.endpoint_path,
+                        "method": doc.http_method,
+                        "relevance_score": score / 10.0 if score > 0 else 0.5,
+                        "tags": doc.tags if doc.tags else []
+                    })
+
+                return {
+                    "results": formatted_results,
+                    "total": len(formatted_results),
+                    "query": query,
+                    "filters": {
+                        "provider_ids": provider_ids,
+                        "methods": methods,
+                        "limit": limit
+                    }
+                }
+
+            finally:
+                db.close()
+
+        except Exception as e:
+            logger.error(f"Database search error: {str(e)}")
+            return {
+                "error": f"Search failed: {str(e)}",
+                "results": [],
+                "total": 0,
+                "query": query
             }
-        ]
-        
-        return {
-            "results": results,
-            "total": len(results),
-            "query": query,
-            "filters": {
-                "provider_ids": provider_ids,
-                "methods": methods,
-                "limit": limit
-            }
-        }
     
     async def _execute_endpoint_tool(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
         """Execute get API endpoint tool"""

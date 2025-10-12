@@ -120,33 +120,97 @@ class APIDocMCPServer:
                 return {"error": str(e)}
     
     async def search_api_docs(
-        self, 
-        query: str, 
+        self,
+        query: str,
         provider_ids: Optional[List[int]] = None,
         methods: Optional[List[str]] = None,
         limit: int = 10
     ) -> Dict[str, Any]:
-        """Search API documentation using semantic search"""
-        # TODO: Implement semantic search using vector database
-        return {
-            "results": [
-                {
-                    "id": 1,
-                    "title": "Sample API Endpoint",
-                    "description": "This is a sample result for the query",
-                    "provider": "Sample Provider",
-                    "endpoint": "/api/v1/sample",
-                    "method": "GET",
-                    "relevance_score": 0.95
+        """Search API documentation using database search"""
+        try:
+            from app.db.database import SessionLocal
+            from app.db.models import APIDocumentation, APIProvider
+            from sqlalchemy import or_
+
+            db = SessionLocal()
+
+            try:
+                # Build query
+                db_query = db.query(APIDocumentation).join(APIProvider)
+
+                # Apply filters
+                if provider_ids:
+                    db_query = db_query.filter(APIDocumentation.provider_id.in_(provider_ids))
+
+                if methods:
+                    db_query = db_query.filter(APIDocumentation.http_method.in_(methods))
+
+                # Text search on title, description, and endpoint path
+                if query:
+                    # Split query into words for better matching
+                    words = [w.strip() for w in query.split() if len(w.strip()) > 2]
+
+                    if words:
+                        # Create OR conditions for each word
+                        search_conditions = []
+                        for word in words:
+                            search_term = f"%{word}%"
+                            search_conditions.append(
+                                or_(
+                                    APIDocumentation.title.ilike(search_term),
+                                    APIDocumentation.description.ilike(search_term),
+                                    APIDocumentation.endpoint_path.ilike(search_term)
+                                )
+                            )
+                        # Match if ANY word matches
+                        db_query = db_query.filter(or_(*search_conditions))
+                    else:
+                        # If no words after filtering, search with full query
+                        search_term = f"%{query}%"
+                        db_query = db_query.filter(
+                            or_(
+                                APIDocumentation.title.ilike(search_term),
+                                APIDocumentation.description.ilike(search_term),
+                                APIDocumentation.endpoint_path.ilike(search_term)
+                            )
+                        )
+
+                # Get results
+                results = db_query.limit(limit).all()
+
+                # Format results
+                formatted_results = []
+                for doc in results:
+                    formatted_results.append({
+                        "id": doc.id,
+                        "title": doc.title,
+                        "description": doc.description[:200] + "..." if doc.description and len(doc.description) > 200 else doc.description,
+                        "provider": doc.provider.display_name,
+                        "endpoint": doc.endpoint_path,
+                        "method": doc.http_method,
+                        "relevance_score": 0.85
+                    })
+
+                return {
+                    "results": formatted_results,
+                    "total": len(formatted_results),
+                    "query": query,
+                    "filters": {
+                        "provider_ids": provider_ids,
+                        "methods": methods
+                    }
                 }
-            ],
-            "total": 1,
-            "query": query,
-            "filters": {
-                "provider_ids": provider_ids,
-                "methods": methods
+
+            finally:
+                db.close()
+
+        except Exception as e:
+            logger.error(f"Error searching API docs: {str(e)}")
+            return {
+                "error": f"Search failed: {str(e)}",
+                "results": [],
+                "total": 0
             }
-        }
     
     async def get_api_endpoint(
         self, 
