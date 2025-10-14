@@ -20,6 +20,7 @@ import {
 import axios from 'axios';
 import GameOfLife from '@/components/GameOfLife';
 import ThemeToggle from '@/components/ThemeToggle';
+import AIConfigPanel from '@/components/AIConfigPanel';
 
 interface Provider {
   id: number;
@@ -50,9 +51,7 @@ export default function AdminDashboard() {
   const [syncStatuses, setSyncStatuses] = useState<Record<string, SyncStatus>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [openAIKey, setOpenAIKey] = useState('');
   const [showSettings, setShowSettings] = useState(false);
-  const [saveMessage, setSaveMessage] = useState('');
   const [showLogs, setShowLogs] = useState(false);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const logsEndRef = React.useRef<HTMLDivElement>(null);
@@ -79,12 +78,6 @@ export default function AdminDashboard() {
       return;
     }
 
-    // Load OpenAI key from localStorage
-    const savedKey = localStorage.getItem('openai_api_key');
-    if (savedKey) {
-      setOpenAIKey(savedKey);
-    }
-
     loadProviders();
     loadSyncStatus();
   }, [router]);
@@ -93,9 +86,11 @@ export default function AdminDashboard() {
     try {
       const response = await axios.get('http://localhost:8000/api/v1/providers/');
       console.log('Providers response:', response.data);
-      setProviders(response.data);
-    } catch (error) {
+      setProviders(Array.isArray(response.data) ? response.data : []);
+    } catch (error: any) {
       console.error('Failed to load providers:', error);
+      // Silently fail
+      setProviders([]);
     }
   };
 
@@ -136,7 +131,8 @@ export default function AdminDashboard() {
       setSyncStatuses(statuses);
     } catch (error: any) {
       console.error('Failed to load sync status:', error);
-      addLog('error', `Failed to load stats: ${error.message}`);
+      const errorMsg = error?.message || error?.toString() || 'Unknown error';
+      addLog('error', `Failed to load stats: ${errorMsg}`);
     } finally {
       setIsLoading(false);
     }
@@ -153,7 +149,8 @@ export default function AdminDashboard() {
       // Use use_celery=false to run sync immediately instead of queuing in Celery
       const response = await axios.post('http://localhost:8000/api/v1/fetcher/sync/all?use_celery=false');
 
-      addLog('info', `✓ Sync request sent: ${response.data.status}`);
+      const syncStatus = typeof response.data.status === 'string' ? response.data.status : JSON.stringify(response.data.status);
+      addLog('info', `✓ Sync request sent: ${syncStatus}`);
       addLog('info', '⏳ Fetching documentation from APIs...');
 
       // Poll for updates
@@ -180,7 +177,8 @@ export default function AdminDashboard() {
       }, 5000);
     } catch (error: any) {
       console.error('Sync failed:', error);
-      addLog('error', `❌ Sync failed: ${error.message || 'Unknown error'}`);
+      const errorMsg = error.message || error.toString() || 'Unknown error';
+      addLog('error', `❌ Sync failed: ${errorMsg}`);
       setIsSyncing(false);
     }
   };
@@ -196,7 +194,8 @@ export default function AdminDashboard() {
       // Use use_celery=false to run sync immediately instead of queuing in Celery
       const response = await axios.post(`http://localhost:8000/api/v1/fetcher/sync/provider/${providerName.toLowerCase()}?use_celery=false`);
 
-      addLog('info', `✓ Sync request sent: ${response.data.status}`);
+      const syncStatus = typeof response.data.status === 'string' ? response.data.status : JSON.stringify(response.data.status);
+      addLog('info', `✓ Sync request sent: ${syncStatus}`);
       addLog('info', '⏳ Fetching documentation...');
 
       setTimeout(async () => {
@@ -212,15 +211,11 @@ export default function AdminDashboard() {
       }, 3000);
     } catch (error: any) {
       console.error(`Sync failed for ${providerName}:`, error);
-      addLog('error', `❌ Sync failed: ${error.message || 'Unknown error'}`);
+      const errorMsg = error.message || error.toString() || 'Unknown error';
+      addLog('error', `❌ Sync failed: ${errorMsg}`);
     }
   };
 
-  const handleSaveSettings = () => {
-    localStorage.setItem('openai_api_key', openAIKey);
-    setSaveMessage('Settings saved successfully!');
-    setTimeout(() => setSaveMessage(''), 3000);
-  };
 
   const handleLogout = () => {
     localStorage.removeItem('adminLoggedIn');
@@ -299,45 +294,10 @@ export default function AdminDashboard() {
 
       {/* Main Content */}
       <div className="relative z-10 container mx-auto px-4 py-8">
-        {/* Settings Panel */}
+        {/* AI Configuration Panel */}
         {showSettings && (
-          <div className="mb-6 p-6 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-gray-900 dark:text-gray-100">
-              <Key className="w-5 h-5" />
-              OpenAI API Configuration
-            </h2>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  OpenAI API Key
-                </label>
-                <input
-                  type="password"
-                  value={openAIKey}
-                  onChange={(e) => setOpenAIKey(e.target.value)}
-                  placeholder="sk-..."
-                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                  Enter your OpenAI API key to enable AI-powered features
-                </p>
-              </div>
-
-              {saveMessage && (
-                <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl text-green-700 dark:text-green-400 text-sm">
-                  {saveMessage}
-                </div>
-              )}
-
-              <button
-                onClick={handleSaveSettings}
-                className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl transition-all flex items-center gap-2"
-              >
-                <Save className="w-4 h-4" />
-                Save Settings
-              </button>
-            </div>
+          <div className="mb-6">
+            <AIConfigPanel onSaveSuccess={loadSyncStatus} />
           </div>
         )}
 
@@ -381,7 +341,7 @@ export default function AdminDashboard() {
                     }`}
                   >
                     <span className="text-gray-500">[{log.timestamp}]</span>{' '}
-                    <span>{log.message}</span>
+                    <span>{typeof log.message === 'string' ? log.message : JSON.stringify(log.message)}</span>
                   </div>
                 ))
               )}
@@ -453,7 +413,7 @@ export default function AdminDashboard() {
 
               {status.error && (
                 <p className="text-xs text-red-600 dark:text-red-400 mb-4">
-                  Error: {status.error}
+                  Error: {typeof status.error === 'string' ? status.error : JSON.stringify(status.error)}
                 </p>
               )}
 

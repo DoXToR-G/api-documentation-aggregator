@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Loader2, Bot, User, Sparkles } from 'lucide-react';
+import { Send, Loader2, Bot, User, Sparkles, X, Trash2 } from 'lucide-react';
 import axios from 'axios';
 
 interface Message {
@@ -13,9 +13,14 @@ interface Message {
 
 interface ChatInterfaceProps {
   apiUrl?: string;
+  onClose?: () => void;
 }
 
-export default function ChatInterface({ apiUrl = 'http://localhost:8000' }: ChatInterfaceProps) {
+// Session storage keys
+const CHAT_SESSION_KEY = 'chat_messages';
+const CHAT_INPUT_KEY = 'chat_input';
+
+export default function ChatInterface({ apiUrl = 'http://localhost:8000', onClose }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -24,14 +29,63 @@ export default function ChatInterface({ apiUrl = 'http://localhost:8000' }: Chat
 
   useEffect(() => {
     setMounted(true);
-    // Add welcome message after mounting
-    setMessages([{
+
+    // Load saved session from localStorage
+    const savedMessages = localStorage.getItem(CHAT_SESSION_KEY);
+    const savedInput = localStorage.getItem(CHAT_INPUT_KEY);
+
+    if (savedMessages) {
+      try {
+        const parsedMessages = JSON.parse(savedMessages);
+        setMessages(parsedMessages);
+      } catch (e) {
+        console.error('Failed to parse saved messages:', e);
+        // Set welcome message if parsing fails
+        setWelcomeMessage();
+      }
+    } else {
+      // Add welcome message if no saved session
+      setWelcomeMessage();
+    }
+
+    if (savedInput) {
+      setInput(savedInput);
+    }
+  }, []);
+
+  const setWelcomeMessage = () => {
+    const welcomeMsg = [{
       id: '1',
-      role: 'assistant',
+      role: 'assistant' as const,
       content: 'Hello! I\'m your AI documentation assistant. Ask me anything about API documentation, endpoints, or how to use specific APIs.',
       timestamp: new Date().toISOString()
-    }]);
-  }, []);
+    }];
+    setMessages(welcomeMsg);
+    localStorage.setItem(CHAT_SESSION_KEY, JSON.stringify(welcomeMsg));
+  };
+
+  // Save messages to localStorage whenever they change
+  useEffect(() => {
+    if (mounted && messages.length > 0) {
+      localStorage.setItem(CHAT_SESSION_KEY, JSON.stringify(messages));
+    }
+  }, [messages, mounted]);
+
+  // Save input to localStorage whenever it changes
+  useEffect(() => {
+    if (mounted) {
+      localStorage.setItem(CHAT_INPUT_KEY, input);
+    }
+  }, [input, mounted]);
+
+  const clearSession = () => {
+    if (confirm('Are you sure you want to clear the chat history?')) {
+      localStorage.removeItem(CHAT_SESSION_KEY);
+      localStorage.removeItem(CHAT_INPUT_KEY);
+      setWelcomeMessage();
+      setInput('');
+    }
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -95,19 +149,36 @@ export default function ChatInterface({ apiUrl = 'http://localhost:8000' }: Chat
           }
           // Handle enhanced search results
           else if (aiResponse.type === 'enhanced_search_results' && aiResponse.results) {
-            if (aiResponse.results.length === 0) {
+            if (aiResponse.results.length === 0 && (!aiResponse.web_results || aiResponse.web_results.length === 0)) {
               responseText = `I couldn't find any results for "${input}". Try rephrasing your query or check if the provider data has been synced.`;
             } else {
-              responseText = `I found ${aiResponse.results.length} relevant endpoint(s):\n\n`;
-              aiResponse.results.forEach((result: any, index: number) => {
-                responseText += `${index + 1}. **${result.title || result.endpoint}**\n`;
-                responseText += `   Method: ${result.method || 'N/A'}\n`;
-                responseText += `   Provider: ${result.provider || 'N/A'}\n`;
-                if (result.description) {
-                  responseText += `   Description: ${result.description}\n`;
+              // Database results
+              if (aiResponse.results.length > 0) {
+                responseText = `I found ${aiResponse.results.length} relevant endpoint(s) in the database:\n\n`;
+                aiResponse.results.forEach((result: any, index: number) => {
+                  responseText += `${index + 1}. **${result.title || result.endpoint}**\n`;
+                  responseText += `   Method: ${result.method || 'N/A'}\n`;
+                  responseText += `   Provider: ${result.provider || 'N/A'}\n`;
+                  if (result.description) {
+                    responseText += `   Description: ${result.description}\n`;
+                  }
+                  responseText += `   Endpoint: ${result.endpoint || 'N/A'}\n\n`;
+                });
+              }
+
+              // Web search results
+              if (aiResponse.web_results && aiResponse.web_results.length > 0) {
+                if (aiResponse.results.length > 0) {
+                  responseText += `\n---\n\n📡 **Additional Web Search Results** (${aiResponse.web_results.length}):\n\n`;
+                } else {
+                  responseText = `I found ${aiResponse.web_results.length} result(s) from web search:\n\n`;
                 }
-                responseText += `   Endpoint: ${result.endpoint || 'N/A'}\n\n`;
-              });
+                aiResponse.web_results.forEach((result: any, index: number) => {
+                  responseText += `${index + 1}. **${result.title}**\n`;
+                  responseText += `   ${result.snippet}\n`;
+                  responseText += `   🔗 ${result.url}\n\n`;
+                });
+              }
             }
           }
           // Handle other object types with type and message
@@ -133,8 +204,31 @@ export default function ChatInterface({ apiUrl = 'http://localhost:8000' }: Chat
       console.error('Chat error:', error);
 
       let errorText = 'Sorry, I encountered an error. Please try again.';
+
+      // Handle different error response formats
       if (error.response?.data?.detail) {
-        errorText = `Error: ${error.response.data.detail}`;
+        const detail = error.response.data.detail;
+
+        // If detail is an array (FastAPI validation errors)
+        if (Array.isArray(detail)) {
+          errorText = 'Validation Error:\n\n';
+          detail.forEach((err: any) => {
+            const location = err.loc ? err.loc.join(' -> ') : 'unknown';
+            errorText += `• ${location}: ${err.msg}\n`;
+          });
+        }
+        // If detail is an object with validation error structure
+        else if (typeof detail === 'object' && detail.type) {
+          errorText = `Error: ${detail.msg || detail.message || JSON.stringify(detail)}`;
+        }
+        // If detail is a string
+        else if (typeof detail === 'string') {
+          errorText = `Error: ${detail}`;
+        }
+        // Fallback for other object types
+        else {
+          errorText = `Error: ${JSON.stringify(detail)}`;
+        }
       } else if (error.message) {
         errorText = `Error: ${error.message}`;
       }
@@ -154,15 +248,35 @@ export default function ChatInterface({ apiUrl = 'http://localhost:8000' }: Chat
   if (!mounted) return null;
 
   return (
-    <div className="flex flex-col h-full bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700">
+    <div className="flex flex-col h-full bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700">
       {/* Header */}
-      <div className="flex items-center gap-3 p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-t-2xl">
-        <div className="p-2 bg-white/20 rounded-lg">
-          <Sparkles className="w-6 h-6 text-white" />
+      <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-t-2xl">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-white/20 rounded-lg">
+            <Sparkles className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-white">AI Assistant</h2>
+            <p className="text-sm text-indigo-100">Ask me about API documentation</p>
+          </div>
         </div>
-        <div>
-          <h2 className="text-xl font-bold text-white">AI Assistant</h2>
-          <p className="text-sm text-indigo-100">Ask me about API documentation</p>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={clearSession}
+            className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+            title="Clear chat history"
+          >
+            <Trash2 className="w-5 h-5 text-white" />
+          </button>
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+              title="Close"
+            >
+              <X className="w-5 h-5 text-white" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -186,7 +300,12 @@ export default function ChatInterface({ apiUrl = 'http://localhost:8000' }: Chat
                   : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
               }`}
             >
-              <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+              <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                {typeof message.content === 'string'
+                  ? message.content
+                  : JSON.stringify(message.content, null, 2)
+                }
+              </p>
               <span className={`text-xs mt-1 block ${
                 message.role === 'user' ? 'text-indigo-100' : 'text-gray-500 dark:text-gray-400'
               }`}>

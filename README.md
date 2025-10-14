@@ -53,10 +53,12 @@ Project is not done Yet. Coding and developing still in progress!!
 - **Pydantic** - Data validation and serialization
 
 ### Frontend
-- **HTML5 + CSS3** - Semantic markup and modern styling
+- **Next.js 14** - React framework with App Router
+- **React 18** - Modern React with hooks and server components
+- **TypeScript** - Type-safe development
 - **Tailwind CSS** - Utility-first CSS framework
-- **JavaScript (ES6+)** - Modern JavaScript features
 - **Lucide Icons** - Beautiful, customizable icons
+- **Axios** - HTTP client for API requests
 
 ### DevOps & Infrastructure
 - **Docker & Docker Compose** - Containerized development environment
@@ -106,20 +108,30 @@ Latest_api_project/
 ├── backend/                 # FastAPI backend
 │   ├── app/
 │   │   ├── api/            # API route handlers
-│   │   │   └── v1/         # API v1 endpoints
+│   │   │   └── v1/         # API v1 endpoints (providers, search, AI settings)
 │   │   ├── core/           # Core functionality & config
 │   │   ├── db/             # Database models & setup
 │   │   ├── fetchers/       # API documentation fetchers
 │   │   ├── mcp/            # Model Context Protocol server
-│   │   ├── services/       # Business logic services (AI agent)
+│   │   ├── services/       # Business logic (AI agent, OpenAI MCP client)
 │   │   ├── vector_store/   # ChromaDB integration
 │   │   └── main.py         # Main FastAPI application
-│   ├── scripts/            # Data import & utility scripts
 │   ├── Dockerfile          # Backend container config
 │   └── requirements.txt    # Python dependencies
-├── frontend/               # Modern web frontend
+├── frontend/               # Next.js 14 frontend
+│   ├── app/                # Next.js App Router pages
+│   │   ├── admin/          # Admin login & dashboard
+│   │   ├── page.tsx        # Main landing page
+│   │   └── layout.tsx      # Root layout
+│   ├── components/         # React components
+│   │   ├── AIConfigPanel.tsx       # OpenAI settings panel
+│   │   ├── ChatInterface.tsx       # AI chat interface
+│   │   ├── GameOfLife.tsx         # Background animation
+│   │   └── ThemeToggle.tsx        # Dark/light mode toggle
+│   ├── Dockerfile          # Frontend container config
+│   └── package.json        # Node.js dependencies
 ├── docker-compose.yml      # Development environment
-├── TESTING.md             # Testing guide
+├── .env.example           # Environment variables template
 └── README.md              # This file
 ```
 
@@ -264,12 +276,39 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Tailwind CSS for the beautiful design system
 - All contributors and supporters
 
+## 📖 Documentation
+
+### Available Documentation
+- **[README.md](README.md)** - This file, project overview and quick start
+- **[AI_SYSTEM_STATUS.md](AI_SYSTEM_STATUS.md)** - Current AI system status and configuration
+- **[MCP_OPENAI_IMPLEMENTATION_SUMMARY.md](MCP_OPENAI_IMPLEMENTATION_SUMMARY.md)** - Complete MCP + OpenAI integration guide
+- **[CHAT_INTERFACE_IMPROVEMENTS.md](CHAT_INTERFACE_IMPROVEMENTS.md)** - Chat UI features and improvements
+
+### Current System Status
+
+**The system includes:**
+- ✅ **True MCP Protocol** - Resources, Tools, and Prompts implementation
+- ✅ **OpenAI Integration** - GPT-4o-mini for intelligent responses
+- ✅ **Smart Chat Interface** - Session persistence, fixed positioning, real-time AI assistance
+- ✅ **PostgreSQL Database** - 1,660+ API endpoints indexed (Atlassian, Kubernetes)
+- ✅ **Admin Dashboard** - Configure OpenAI settings, sync providers, monitor status
+- ✅ **Vector Search Ready** - ChromaDB for semantic search
+- ✅ **Modern UI** - Next.js 14 with dark/light themes, Conway's Game of Life background
+
+**To use AI features:**
+1. Get an OpenAI API key from https://platform.openai.com/api-keys
+2. Go to http://localhost:3000/admin/dashboard
+3. Click "Settings" and enter your API key
+4. Click "Validate" then "Save"
+5. Start chatting with the AI assistant!
+
 ## 📞 Support
 
 If you have any questions or need help:
 - Open an issue on GitHub
 - Check the documentation at `/docs`
 - Review the health endpoint at `/health`
+- Read the guides above for specific topics
 
 ---
 

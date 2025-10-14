@@ -104,10 +104,14 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Chat Interface */}
-        <div className={`max-w-4xl mx-auto mb-16 h-[600px] transition-all duration-300 ${showChat ? 'opacity-100 scale-100' : 'opacity-0 scale-95 h-0 overflow-hidden'}`}>
-          {showChat && <ChatInterface />}
-        </div>
+        {/* Chat Interface - Fixed Position Dialog */}
+        {showChat && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <div className="w-full max-w-4xl h-[600px] animate-scale-in">
+              <ChatInterface onClose={() => setShowChat(false)} />
+            </div>
+          </div>
+        )}
 
         {/* Features Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">

@@ -12,7 +12,7 @@ from app.core.config import settings
 from app.db.database import get_db, engine
 from app.db.models import Base
 from app.api.routes import api_router
-from app.services.enhanced_ai_agent import EnhancedAIAgent
+from app.services.ai_agent_openai_mcp import AIAgentWithOpenAIMCP
 from app.vector_store.chroma_client import ChromaDBClient
 
 # Configure logging
@@ -27,11 +27,16 @@ class AIQueryRequest(BaseModel):
     session_id: Optional[str] = None
 
 
+class SettingsUpdateRequest(BaseModel):
+    openai_api_key: Optional[str] = None
+    enable_web_search: Optional[bool] = None
+
+
 # Create database tables
 Base.metadata.create_all(bind=engine)
 
 # Initialize services
-ai_agent_service = EnhancedAIAgent()
+ai_agent_service = AIAgentWithOpenAIMCP()
 vector_store = ChromaDBClient()
 
 # Initialize FastAPI app
@@ -61,7 +66,7 @@ async def startup_event():
     """Initialize services on startup"""
     try:
         await ai_agent_service.initialize()
-        logger.info("Enhanced AI Agent initialized successfully")
+        logger.info("AI Agent with OpenAI+MCP initialized successfully")
     except Exception as e:
         logger.error(f"Failed to initialize AI Agent: {str(e)}")
 
@@ -240,6 +245,53 @@ async def get_vector_store_stats():
     except Exception as e:
         logger.error(f"Failed to get vector store stats: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to get stats: {str(e)}")
+
+
+@app.post("/api/v1/settings/update")
+async def update_settings(request: SettingsUpdateRequest):
+    """
+    Update application settings (OpenAI API key, web search toggle)
+    Settings are stored in memory for the current session
+    """
+    try:
+        updated_settings = {}
+
+        # Update OpenAI API key
+        if request.openai_api_key is not None:
+            settings.openai_api_key = request.openai_api_key
+            updated_settings["openai_api_key"] = "***" if request.openai_api_key else None
+            logger.info("OpenAI API key updated")
+
+        # Update web search setting
+        if request.enable_web_search is not None:
+            settings.enable_web_search = request.enable_web_search
+            updated_settings["enable_web_search"] = request.enable_web_search
+            logger.info(f"Web search {'enabled' if request.enable_web_search else 'disabled'}")
+
+        return {
+            "status": "success",
+            "message": "Settings updated successfully",
+            "updated_settings": updated_settings
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to update settings: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to update settings: {str(e)}")
+
+
+@app.get("/api/v1/settings")
+async def get_settings():
+    """Get current application settings (masked sensitive data)"""
+    try:
+        return {
+            "openai_api_key_configured": bool(settings.openai_api_key),
+            "enable_web_search": settings.enable_web_search,
+            "web_search_provider": settings.web_search_provider,
+            "web_search_max_results": settings.web_search_max_results
+        }
+    except Exception as e:
+        logger.error(f"Failed to get settings: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get settings: {str(e)}")
 
 
 if __name__ == "__main__":

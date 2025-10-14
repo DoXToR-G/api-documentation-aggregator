@@ -12,6 +12,8 @@ import uuid
 
 from app.mcp.client import MCPClient
 from app.vector_store.chroma_client import ChromaDBClient
+from app.services.web_search import WebSearchService
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +24,10 @@ class EnhancedAIAgent:
     def __init__(self):
         self.mcp_client = MCPClient()
         self.vector_store = ChromaDBClient()
+        self.web_search = WebSearchService(
+            provider=settings.web_search_provider,
+            max_results=settings.web_search_max_results
+        )
         self.conversation_history: List[Dict[str, Any]] = []
         self.session_contexts: Dict[str, Dict[str, Any]] = {}
         self.agent_id = str(uuid.uuid4())
@@ -341,12 +347,28 @@ class EnhancedAIAgent:
                 enhanced_result['usage_tips'] = self._generate_usage_tips(result)
                 enhanced_results.append(enhanced_result)
 
-            logger.info(f"Returning {len(enhanced_results)} enhanced results")
+            logger.info(f"Returning {len(enhanced_results)} enhanced results from database")
+
+            # If web search is enabled and results are insufficient, supplement with web search
+            web_results = []
+            if settings.enable_web_search and len(enhanced_results) < 3:
+                logger.info("Web search is enabled and database results are insufficient. Searching web...")
+                try:
+                    web_search_context = {
+                        "provider_name": self._get_provider_name(provider_ids) if provider_ids else None
+                    }
+                    web_response = await self.web_search.search(query, web_search_context)
+                    web_results = web_response.get('results', [])
+                    logger.info(f"Web search returned {len(web_results)} additional results")
+                except Exception as e:
+                    logger.error(f"Web search failed: {str(e)}")
 
             return {
                 'type': 'enhanced_search_results',
                 'results': enhanced_results,
+                'web_results': web_results,
                 'total': len(enhanced_results),
+                'web_total': len(web_results),
                 'query': query,
                 'filters_applied': {
                     'provider_ids': provider_ids,
@@ -354,7 +376,8 @@ class EnhancedAIAgent:
                 },
                 'search_insights': {
                     'query_complexity': self._assess_query_complexity(query),
-                    'suggested_refinements': self._suggest_search_refinements(query)
+                    'suggested_refinements': self._suggest_search_refinements(query),
+                    'web_search_used': len(web_results) > 0
                 }
             }
             
@@ -391,14 +414,25 @@ class EnhancedAIAgent:
     def _suggest_search_refinements(self, query: str) -> List[str]:
         """Suggest search refinements"""
         suggestions = []
-        
+
         if len(query.split()) < 3:
             suggestions.append("Try adding more specific keywords")
-        
+
         if 'api' not in query.lower():
             suggestions.append("Include 'API' in your search for better results")
-        
+
         return suggestions
+
+    def _get_provider_name(self, provider_ids: List[int]) -> Optional[str]:
+        """Get provider name from ID"""
+        provider_map = {
+            1: "Datadog",
+            2: "Atlassian",
+            3: "Kubernetes"
+        }
+        if provider_ids and len(provider_ids) > 0:
+            return provider_map.get(provider_ids[0])
+        return None
     
     async def _handle_enhanced_endpoint_query(
         self, 

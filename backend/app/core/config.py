@@ -29,9 +29,18 @@ class Settings(BaseSettings):
     
     # AI and MCP Configuration
     openai_api_key: Optional[str] = None
+    openai_model: str = "gpt-4o-mini"  # or "gpt-4o"
     anthropic_api_key: Optional[str] = None
-    mcp_server_name: str = "api-doc-mcp-server"
+    mcp_server_name: str = "api-documentation-server"
     mcp_server_version: str = "2.0.0"
+
+    # AI Agent Settings - Use OpenAI+MCP (True) or fallback rules-based (False)
+    use_openai_agent: bool = True
+
+    # Web Search Configuration
+    enable_web_search: bool = False
+    web_search_provider: str = "duckduckgo"  # or "google", "bing"
+    web_search_max_results: int = 5
     
     # CORS
     allowed_hosts: List[str] = ["localhost", "127.0.0.1", "http://localhost:3000"]

@@ -84,6 +84,10 @@
     animation: slideUp 0.3s ease-out;
   }
 
+  .animate-scale-in {
+    animation: scaleIn 0.2s ease-out;
+  }
+
   .custom-scrollbar::-webkit-scrollbar {
     width: 8px;
     height: 8px;
@@ -110,6 +114,17 @@
   }
   to {
     transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
     opacity: 1;
   }
 }
