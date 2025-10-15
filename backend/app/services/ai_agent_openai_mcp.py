@@ -75,9 +75,17 @@ class AIAgentWithOpenAIMCP:
             # Get conversation history
             conversation_history = self.session_conversations[session_id]
 
-            # Check if OpenAI is configured
+            # Ensure OpenAI is configured; if not, try to initialize on-demand
             if not self.openai_mcp_client:
-                return await self._fallback_response(query, session_id)
+                if getattr(settings, 'openai_api_key', None):
+                    try:
+                        init_ok = await self.initialize()
+                        logger.info(f"On-demand AI initialization result: {init_ok}")
+                    except Exception as init_err:
+                        logger.error(f"On-demand AI initialization failed: {str(init_err)}")
+                # If still not initialized, return fallback
+                if not self.openai_mcp_client:
+                    return await self._fallback_response(query, session_id)
 
             # Add user message to history
             conversation_history.append({
