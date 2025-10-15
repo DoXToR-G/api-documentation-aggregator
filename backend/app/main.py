@@ -65,6 +65,13 @@ app.include_router(api_router, prefix="/api/v1")
 async def startup_event():
     """Initialize services on startup"""
     try:
+        # Load settings from database
+        from app.services.settings_service import settings_service
+        db = next(get_db())
+        settings_service.load_settings_to_config(db)
+        logger.info("Settings loaded from database")
+
+        # Initialize AI agent
         await ai_agent_service.initialize()
         logger.info("AI Agent with OpenAI+MCP initialized successfully")
     except Exception as e:

@@ -125,4 +125,18 @@ class AdminUser(Base):
     is_superuser = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    last_login = Column(DateTime(timezone=True)) 
+    last_login = Column(DateTime(timezone=True))
+
+
+class AISettings(Base):
+    """AI Settings model - stores AI configuration (OpenAI API keys, etc.)"""
+    __tablename__ = "ai_settings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    setting_key = Column(String(100), unique=True, nullable=False, index=True)
+    setting_value = Column(Text)  # Store encrypted values here
+    setting_type = Column(String(50), default='string')  # 'string', 'boolean', 'integer', 'json'
+    is_encrypted = Column(Boolean, default=False)
+    description = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now()) 

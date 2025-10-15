@@ -21,6 +21,7 @@ import axios from 'axios';
 import GameOfLife from '@/components/GameOfLife';
 import ThemeToggle from '@/components/ThemeToggle';
 import AIConfigPanel from '@/components/AIConfigPanel';
+import AIStatusPanel from '@/components/AIStatusPanel';
 
 interface Provider {
   id: number;
@@ -296,8 +297,9 @@ export default function AdminDashboard() {
       <div className="relative z-10 container mx-auto px-4 py-8">
         {/* AI Configuration Panel */}
         {showSettings && (
-          <div className="mb-6">
+          <div className="mb-6 grid md:grid-cols-2 gap-6">
             <AIConfigPanel onSaveSuccess={loadSyncStatus} />
+            <AIStatusPanel />
           </div>
         )}
 

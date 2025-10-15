@@ -33,6 +33,7 @@ pyyaml>=6.0.0
 # Security
 passlib[bcrypt]>=1.7.0
 pyjwt>=2.8.0
+cryptography>=41.0.0
 
 # OpenAI Integration
 openai>=1.54.0

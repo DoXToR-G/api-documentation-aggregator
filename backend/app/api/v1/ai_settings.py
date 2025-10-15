@@ -3,14 +3,17 @@ API endpoints for AI settings management
 Admin panel can configure OpenAI settings dynamically
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Optional
 import logging
 from openai import AsyncOpenAI
+from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.services.openai_mcp_client import _openai_mcp_client
+from app.services.settings_service import settings_service
+from app.db.database import get_db
 
 logger = logging.getLogger(__name__)
 
@@ -51,10 +54,11 @@ async def get_ai_settings():
 
 
 @router.post("/ai/settings")
-async def update_ai_settings(ai_settings: AISettingsModel):
+async def update_ai_settings(ai_settings: AISettingsModel, db: Session = Depends(get_db)):
     """
     Update AI settings dynamically
     Admin panel uses this to configure OpenAI without restart
+    Settings are persisted to database and survive Docker restarts
     """
     try:
         global _openai_mcp_client
@@ -64,6 +68,15 @@ async def update_ai_settings(ai_settings: AISettingsModel):
         if ai_settings.openai_api_key is not None:
             settings.openai_api_key = ai_settings.openai_api_key
             updated_fields.append("openai_api_key")
+
+            # Save to database (encrypted)
+            settings_service.save_setting(
+                db=db,
+                key='openai_api_key',
+                value=ai_settings.openai_api_key,
+                encrypt=True,
+                description='OpenAI API Key for AI agent'
+            )
 
             # Reinitialize OpenAI client with new key
             if _openai_mcp_client:
@@ -75,6 +88,14 @@ async def update_ai_settings(ai_settings: AISettingsModel):
             settings.openai_model = ai_settings.openai_model
             updated_fields.append("openai_model")
 
+            # Save to database
+            settings_service.save_setting(
+                db=db,
+                key='openai_model',
+                value=ai_settings.openai_model,
+                description='OpenAI model to use'
+            )
+
             if _openai_mcp_client:
                 _openai_mcp_client.model = ai_settings.openai_model
                 logger.info(f"OpenAI model updated to: {ai_settings.openai_model}")
@@ -84,14 +105,32 @@ async def update_ai_settings(ai_settings: AISettingsModel):
             update_system_prompt(ai_settings.system_prompt)
             updated_fields.append("system_prompt")
 
+            # Save to database
+            settings_service.save_setting(
+                db=db,
+                key='system_prompt',
+                value=ai_settings.system_prompt,
+                setting_type='string',
+                description='System prompt for AI agent'
+            )
+
         # Update web search
         if ai_settings.enable_web_search is not None:
             settings.enable_web_search = ai_settings.enable_web_search
             updated_fields.append("enable_web_search")
 
+            # Save to database
+            settings_service.save_setting(
+                db=db,
+                key='enable_web_search',
+                value=ai_settings.enable_web_search,
+                setting_type='boolean',
+                description='Enable web search for AI agent'
+            )
+
         return {
             "status": "success",
-            "message": f"Updated: {', '.join(updated_fields)}",
+            "message": f"Updated and persisted: {', '.join(updated_fields)}",
             "updated_fields": updated_fields
         }
 
