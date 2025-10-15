@@ -28,25 +28,11 @@ interface DocumentationSource {
 export default function AdminDashboard() {
   const router = useRouter();
   const [showSettings, setShowSettings] = useState(false);
-  const [docSources, setDocSources] = useState<DocumentationSource[]>([
-    {
-      id: 'atlassian',
-      name: 'Atlassian/Jira',
-      description: 'Jira Cloud REST API v3 documentation',
-      enabled: true,
-      icon_color: 'from-blue-500 to-blue-600'
-    },
-    {
-      id: 'kubernetes',
-      name: 'Kubernetes',
-      description: 'Kubernetes API documentation',
-      enabled: true,
-      icon_color: 'from-cyan-500 to-cyan-600'
-    }
-  ]);
+  const [docSources, setDocSources] = useState<DocumentationSource[]>([]);
   const [showAddSource, setShowAddSource] = useState(false);
   const [newSourceName, setNewSourceName] = useState('');
   const [newSourceDescription, setNewSourceDescription] = useState('');
+  const [isLoadingSources, setIsLoadingSources] = useState(true);
 
   useEffect(() => {
     // Check authentication
@@ -55,38 +41,86 @@ export default function AdminDashboard() {
       router.push('/admin');
       return;
     }
+
+    // Load documentation sources from backend
+    loadDocumentationSources();
   }, [router]);
+
+  const loadDocumentationSources = async () => {
+    setIsLoadingSources(true);
+    try {
+      const response = await axios.get('http://localhost:8000/api/v1/doc-sources');
+      const sources = response.data.map((source: any) => ({
+        id: source.id.toString(),
+        name: source.display_name,
+        description: source.description,
+        enabled: source.is_active,
+        icon_color: source.icon_color || getIconColor(source.name)
+      }));
+      setDocSources(sources);
+    } catch (error) {
+      console.error('Failed to load documentation sources:', error);
+    } finally {
+      setIsLoadingSources(false);
+    }
+  };
+
+  const getIconColor = (name: string): string => {
+    const colors = [
+      'from-blue-500 to-blue-600',
+      'from-cyan-500 to-cyan-600',
+      'from-purple-500 to-purple-600',
+      'from-green-500 to-green-600',
+      'from-orange-500 to-orange-600',
+      'from-pink-500 to-pink-600'
+    ];
+    const hash = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return colors[hash % colors.length];
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('adminLoggedIn');
     router.push('/admin');
   };
 
-  const toggleSourceEnabled = (sourceId: string) => {
-    setDocSources(prev =>
-      prev.map(source =>
-        source.id === sourceId
-          ? { ...source, enabled: !source.enabled }
-          : source
-      )
-    );
+  const toggleSourceEnabled = async (sourceId: string) => {
+    try {
+      await axios.patch(`http://localhost:8000/api/v1/doc-sources/${sourceId}/toggle`);
+      // Refresh sources
+      await loadDocumentationSources();
+    } catch (error) {
+      console.error('Failed to toggle source:', error);
+      alert('Failed to toggle source. Please try again.');
+    }
   };
 
-  const handleAddSource = () => {
+  const handleAddSource = async () => {
     if (!newSourceName.trim()) return;
 
-    const newSource: DocumentationSource = {
-      id: newSourceName.toLowerCase().replace(/\s+/g, '-'),
-      name: newSourceName,
-      description: newSourceDescription || `${newSourceName} API documentation`,
-      enabled: true,
-      icon_color: 'from-purple-500 to-purple-600'
-    };
+    try {
+      await axios.post('http://localhost:8000/api/v1/doc-sources', {
+        name: newSourceName.toLowerCase().replace(/\s+/g, '-'),
+        display_name: newSourceName,
+        description: newSourceDescription || `${newSourceName} API documentation`,
+        base_url: `https://api.${newSourceName.toLowerCase().replace(/\s+/g, '')}.com`,
+        documentation_url: '',
+        icon_color: 'from-purple-500 to-purple-600'
+      });
 
-    setDocSources(prev => [...prev, newSource]);
-    setNewSourceName('');
-    setNewSourceDescription('');
-    setShowAddSource(false);
+      // Refresh sources
+      await loadDocumentationSources();
+
+      // Clear form
+      setNewSourceName('');
+      setNewSourceDescription('');
+      setShowAddSource(false);
+
+      alert(`Documentation source "${newSourceName}" added successfully!`);
+    } catch (error: any) {
+      console.error('Failed to add source:', error);
+      const errorMsg = error.response?.data?.detail || 'Failed to add source';
+      alert(errorMsg);
+    }
   };
 
   return (
