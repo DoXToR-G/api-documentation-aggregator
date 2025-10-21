@@ -1,6 +1,7 @@
 """
 API endpoints for managing documentation sources
-Admin can add/remove/configure documentation sources for AI to access
+Admin can view and enable/disable documentation sources for AI to access
+Note: Use load_openapi MCP tool for dynamic loading of OpenAPI specs
 """
 
 from fastapi import APIRouter, HTTPException, Depends
@@ -15,16 +16,6 @@ from app.db.models import APIProvider
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-
-
-class DocumentationSourceCreate(BaseModel):
-    """Model for creating a new documentation source"""
-    name: str
-    display_name: str
-    description: Optional[str] = None
-    base_url: Optional[str] = None
-    documentation_url: Optional[str] = None
-    icon_color: Optional[str] = "from-purple-500 to-purple-600"
 
 
 class DocumentationSourceResponse(BaseModel):
@@ -79,61 +70,6 @@ async def get_documentation_sources(db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/doc-sources", response_model=DocumentationSourceResponse)
-async def add_documentation_source(
-    source: DocumentationSourceCreate,
-    db: Session = Depends(get_db)
-):
-    """
-    Add a new documentation source
-    Makes it available for AI to access via MCP
-    """
-    try:
-        # Check if source already exists
-        existing = db.query(APIProvider).filter(
-            APIProvider.name == source.name.lower().replace(' ', '-')
-        ).first()
-
-        if existing:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Documentation source '{source.name}' already exists"
-            )
-
-        # Create new provider
-        new_provider = APIProvider(
-            name=source.name.lower().replace(' ', '-'),
-            display_name=source.display_name,
-            description=source.description or f"{source.display_name} API documentation",
-            base_url=source.base_url or f"https://api.{source.name.lower()}.com",
-            documentation_url=source.documentation_url or "",
-            is_active=True
-        )
-
-        db.add(new_provider)
-        db.commit()
-        db.refresh(new_provider)
-
-        logger.info(f"Added new documentation source: {source.display_name}")
-
-        return DocumentationSourceResponse(
-            id=new_provider.id,
-            name=new_provider.name,
-            display_name=new_provider.display_name,
-            description=new_provider.description,
-            base_url=new_provider.base_url,
-            documentation_url=new_provider.documentation_url,
-            icon_color=source.icon_color,
-            is_active=new_provider.is_active,
-            endpoint_count=0
-        )
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Failed to add documentation source: {str(e)}")
-        db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.patch("/doc-sources/{source_id}/toggle")
@@ -171,39 +107,3 @@ async def toggle_documentation_source(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.delete("/doc-sources/{source_id}")
-async def delete_documentation_source(
-    source_id: int,
-    db: Session = Depends(get_db)
-):
-    """
-    Delete a documentation source
-    Removes it from available sources for AI
-    """
-    try:
-        provider = db.query(APIProvider).filter(APIProvider.id == source_id).first()
-
-        if not provider:
-            raise HTTPException(status_code=404, detail="Documentation source not found")
-
-        # Don't allow deleting default sources
-        if provider.name in ['atlassian', 'kubernetes']:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Cannot delete default source: {provider.display_name}"
-            )
-
-        name = provider.display_name
-        db.delete(provider)
-        db.commit()
-
-        logger.info(f"Deleted documentation source: {name}")
-
-        return {"message": f"Documentation source '{name}' deleted successfully"}
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Failed to delete documentation source: {str(e)}")
-        db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))

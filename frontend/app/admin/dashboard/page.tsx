@@ -6,10 +6,10 @@ import {
   Database,
   Settings,
   LogOut,
-  Plus,
   BookOpen,
   Check,
-  X as XIcon
+  X as XIcon,
+  FileText
 } from 'lucide-react';
 import axios from 'axios';
 import GameOfLife from '@/components/GameOfLife';
@@ -29,9 +29,6 @@ export default function AdminDashboard() {
   const router = useRouter();
   const [showSettings, setShowSettings] = useState(false);
   const [docSources, setDocSources] = useState<DocumentationSource[]>([]);
-  const [showAddSource, setShowAddSource] = useState(false);
-  const [newSourceName, setNewSourceName] = useState('');
-  const [newSourceDescription, setNewSourceDescription] = useState('');
   const [isLoadingSources, setIsLoadingSources] = useState(true);
 
   useEffect(() => {
@@ -80,7 +77,7 @@ export default function AdminDashboard() {
 
   const handleLogout = () => {
     localStorage.removeItem('adminLoggedIn');
-    router.push('/admin');
+    window.location.href = 'http://localhost:3000/';  // Redirect to main page
   };
 
   const toggleSourceEnabled = async (sourceId: string) => {
@@ -94,34 +91,6 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleAddSource = async () => {
-    if (!newSourceName.trim()) return;
-
-    try {
-      await axios.post('http://localhost:8000/api/v1/doc-sources', {
-        name: newSourceName.toLowerCase().replace(/\s+/g, '-'),
-        display_name: newSourceName,
-        description: newSourceDescription || `${newSourceName} API documentation`,
-        base_url: `https://api.${newSourceName.toLowerCase().replace(/\s+/g, '')}.com`,
-        documentation_url: '',
-        icon_color: 'from-purple-500 to-purple-600'
-      });
-
-      // Refresh sources
-      await loadDocumentationSources();
-
-      // Clear form
-      setNewSourceName('');
-      setNewSourceDescription('');
-      setShowAddSource(false);
-
-      alert(`Documentation source "${newSourceName}" added successfully!`);
-    } catch (error: any) {
-      console.error('Failed to add source:', error);
-      const errorMsg = error.response?.data?.detail || 'Failed to add source';
-      alert(errorMsg);
-    }
-  };
 
   return (
     <div className="min-h-screen relative">
@@ -148,6 +117,14 @@ export default function AdminDashboard() {
             </div>
 
             <div className="flex items-center gap-3">
+              <button
+                onClick={() => router.push('/admin/logs')}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-all flex items-center gap-2"
+                title="View System Logs"
+              >
+                <FileText className="w-4 h-4" />
+                Logs
+              </button>
               <button
                 onClick={() => setShowSettings(!showSettings)}
                 className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-xl transition-all flex items-center gap-2"
@@ -195,71 +172,10 @@ export default function AdminDashboard() {
                 Documentation Sources
               </h2>
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                Manage AI-accessible API documentation sources
+                AI-accessible API documentation sources (use "load_openapi" for dynamic loading)
               </p>
             </div>
-            <button
-              onClick={() => setShowAddSource(!showAddSource)}
-              className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl transition-all flex items-center gap-2 font-semibold shadow-lg"
-            >
-              <Plus className="w-5 h-5" />
-              Add Source
-            </button>
           </div>
-
-          {/* Add Source Form */}
-          {showAddSource && (
-            <div className="mb-6 p-6 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-                Add New Documentation Source
-              </h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Source Name
-                  </label>
-                  <input
-                    type="text"
-                    value={newSourceName}
-                    onChange={(e) => setNewSourceName(e.target.value)}
-                    placeholder="e.g., Grafana, Prometheus, etc."
-                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Description
-                  </label>
-                  <input
-                    type="text"
-                    value={newSourceDescription}
-                    onChange={(e) => setNewSourceDescription(e.target.value)}
-                    placeholder="Brief description of the API"
-                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-                <div className="flex gap-3">
-                  <button
-                    onClick={handleAddSource}
-                    disabled={!newSourceName.trim()}
-                    className="flex-1 px-4 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl transition-all font-semibold"
-                  >
-                    Add Source
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowAddSource(false);
-                      setNewSourceName('');
-                      setNewSourceDescription('');
-                    }}
-                    className="px-4 py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 rounded-xl transition-all font-semibold"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Documentation Sources Grid */}
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -328,7 +244,10 @@ export default function AdminDashboard() {
               • <strong>AI-Powered:</strong> Documentation is accessed on-demand by the AI agent using MCP (Model Context Protocol)
             </p>
             <p>
-              • <strong>No Storage:</strong> No need to sync or store API endpoints - the AI searches documentation directly
+              • <strong>Dynamic Loading:</strong> Use "load_openapi" to bring any OpenAPI spec URL at chat time - no database persistence needed
+            </p>
+            <p>
+              • <strong>Database Sources:</strong> Pre-configured sources above are persisted in the database for frequent use
             </p>
             <p>
               • <strong>Real-Time:</strong> Always up-to-date information from official documentation sources

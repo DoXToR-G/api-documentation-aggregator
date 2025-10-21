@@ -33,10 +33,10 @@ export default function Home() {
   ];
 
   const providers = [
-    { name: 'Atlassian', color: 'from-blue-500 to-blue-600', endpoints: '150+' },
-    { name: 'Datadog', color: 'from-purple-500 to-purple-600', endpoints: '200+' },
-    { name: 'Kubernetes', color: 'from-cyan-500 to-cyan-600', endpoints: '300+' },
-    { name: 'GitHub', color: 'from-gray-700 to-gray-800', endpoints: '250+' }
+    { name: 'Atlassian', color: 'from-blue-500 to-blue-600', endpoints: '598', status: 'active' },
+    { name: 'Kubernetes', color: 'from-cyan-500 to-cyan-600', endpoints: '1062', status: 'active' },
+    { name: 'Datadog', color: 'from-purple-500 to-purple-600', endpoints: '200+', status: 'active' },
+    { name: 'Grafana', color: 'from-orange-500 to-orange-600', endpoints: 'Coming Soon', status: 'coming-soon' }
   ];
 
   return (
@@ -143,16 +143,24 @@ export default function Home() {
             {providers.map((provider, index) => (
               <div
                 key={index}
-                className="group p-6 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-200 border border-gray-200 dark:border-gray-700 cursor-pointer"
+                className={`group p-6 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-2xl shadow-lg transition-all duration-200 border border-gray-200 dark:border-gray-700 ${
+                  provider.status === 'active' ? 'hover:shadow-2xl cursor-pointer' : 'opacity-75'
+                }`}
               >
-                <div className={`w-full h-32 bg-gradient-to-br ${provider.color} rounded-xl mb-4 flex items-center justify-center text-white text-2xl font-bold group-hover:scale-105 transition-transform`}>
+                <div className={`w-full h-32 bg-gradient-to-br ${provider.color} rounded-xl mb-4 flex items-center justify-center text-white text-2xl font-bold ${
+                  provider.status === 'active' ? 'group-hover:scale-105 transition-transform' : ''
+                }`}>
                   {provider.name}
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-900 dark:text-gray-100 font-semibold">
                     {provider.name}
                   </span>
-                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                  <span className={`text-sm ${
+                    provider.status === 'coming-soon'
+                      ? 'text-orange-500 dark:text-orange-400 font-medium'
+                      : 'text-gray-500 dark:text-gray-400'
+                  }`}>
                     {provider.endpoints}
                   </span>
                 </div>

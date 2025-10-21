@@ -119,6 +119,11 @@ export default function ChatInterface({ apiUrl = 'http://localhost:8000', onClos
         query: input,
         context: {},
         session_id: null
+      }, {
+        timeout: 60000, // 60 second timeout
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
 
       console.log('AI Response:', response.data);
@@ -205,8 +210,16 @@ export default function ChatInterface({ apiUrl = 'http://localhost:8000', onClos
 
       let errorText = 'Sorry, I encountered an error. Please try again.';
 
+      // Handle timeout specifically
+      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+        errorText = 'Request timed out. The AI is taking longer than expected. Please try again or rephrase your question.';
+      }
+      // Handle network errors
+      else if (error.message === 'Network Error') {
+        errorText = 'Network error. Please check if the backend server is running at ' + apiUrl;
+      }
       // Handle different error response formats
-      if (error.response?.data?.detail) {
+      else if (error.response?.data?.detail) {
         const detail = error.response.data.detail;
 
         // If detail is an array (FastAPI validation errors)

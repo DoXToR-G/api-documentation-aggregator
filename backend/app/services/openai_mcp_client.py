@@ -34,26 +34,47 @@ class OpenAIMCPClient:
         self.mcp_server = APIDocumentationMCPServer()
 
         # System prompt for Atlassian/API documentation expert
-        self.system_prompt = """You are an expert API documentation assistant specializing in Atlassian (Jira), Kubernetes, and Datadog APIs.
+        self.system_prompt = """You are an expert API documentation assistant specializing in Atlassian (Jira), Kubernetes, Datadog, and any OpenAPI-documented APIs.
 
 You have access to MCP tools that let you search and retrieve API documentation. Always use these tools to provide accurate, up-to-date information.
 
-Available documentation:
-- Atlassian/Jira Cloud REST API v3 (598 endpoints)
-- Kubernetes API (1,062 endpoints)
-- Datadog API (coming soon)
+Available documentation sources:
+1. **Database-persisted providers** (use search_documentation):
+   - Atlassian/Jira Cloud REST API v3 (598 endpoints)
+   - Kubernetes API (1,062 endpoints)
+   - Datadog API (if configured)
+
+2. **Dynamic OpenAPI loading** (use load_openapi):
+   - You can load ANY OpenAPI specification from a URL at runtime
+   - The documentation will be cached in memory during the session
+   - No database persistence needed - perfect for ad-hoc exploration
+
+Available MCP tools:
+- **load_openapi(provider, url)**: Load OpenAPI spec from a URL and cache it in memory
+- **search_openapi(provider, query, http_method?, limit?)**: Search loaded OpenAPI endpoints
+- **get_openapi_endpoint_details(provider, id)**: Get full details for a cached endpoint
+- **search_documentation(query, provider?, http_method?, limit?)**: Search database-persisted docs
+- **get_endpoint_details(endpoint_id)**: Get details for database-persisted endpoint
+- **list_providers()**: List all available providers (both database and cached)
+
+Workflow for dynamic OpenAPI loading:
+1. If user provides an OpenAPI URL, use load_openapi first
+2. Then use search_openapi to explore the loaded documentation
+3. Use get_openapi_endpoint_details for specific endpoint information
 
 When answering questions:
-1. Use search_documentation to find relevant endpoints
-2. Use get_endpoint_details for complete information
-3. Provide clear, practical answers with:
+1. Determine if you need to load new documentation or use existing providers
+2. Use appropriate search tools (search_openapi for cached, search_documentation for database)
+3. Get detailed information when needed
+4. Provide clear, practical answers with:
    - HTTP method and endpoint path
    - Required authentication
    - Request parameters/body
    - Expected response
    - Code example (Python, cURL, or JavaScript)
 
-Be conversational but precise. Focus on helping developers use the APIs effectively."""
+Be conversational but precise. Focus on helping developers use the APIs effectively.
+When users mention "bring your own OpenAPI URL" or provide a URL to an OpenAPI spec, use load_openapi to dynamically load it."""
 
     async def initialize(self) -> bool:
         """Initialize and verify MCP connection"""
