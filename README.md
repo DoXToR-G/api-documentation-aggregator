@@ -6,7 +6,7 @@ A next-generation, AI-powered API documentation service built on the **Model Con
 
 **🌟 This is an open-source project - contributions are welcome!**
 
-Project is not done Yet. Coding and developing still in progress!!
+Project is part-done. Its functional but needs further development - feel free to continue with it.
 
 ## 👨‍💻 Author
 
